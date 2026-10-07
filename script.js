@@ -290,15 +290,81 @@
         });
     }
 
-    function playSound(file) {
+    // ============ SISTEMA DE AUDIO ROBUSTO ============
+    const audioCache = {};
+    let audioDesbloqueado = false;
+
+    const ARCHIVOS_AUDIO = {
+        'start.mp3': './start.mp3',
+        'sound1.mp3': './sound1.mp3',
+        'notificacion.mp3': './notificacion.mp3'
+    };
+
+    function precargarAudios() {
+        Object.keys(ARCHIVOS_AUDIO).forEach(nombre => {
+            try {
+                const a = new Audio();
+                a.src = ARCHIVOS_AUDIO[nombre];
+                a.preload = 'auto';
+                a.volume = 1.0;
+                a.addEventListener('error', () => {
+                    console.error('❌ No se pudo cargar el audio:', ARCHIVOS_AUDIO[nombre]);
+                }); 
+                a.load();
+                audioCache[nombre] = a;
+            } catch(e) {
+                console.error('Error al precargar audio:', nombre, e);
+            }
+        });
+    }
+
+    function desbloquearAudio() {
+        if (audioDesbloqueado) return;
+        audioDesbloqueado = true;
+        Object.keys(audioCache).forEach(nombre => {
+            const a = audioCache[nombre];
+            if (!a) return;
+            const p = a.play();
+            if (p && p.then) {
+                p.then(() => {
+                    a.pause();
+                    a.currentTime = 0;
+                }).catch(() => {});
+            }
+        });
+    }
+
+    document.addEventListener('touchstart', desbloquearAudio, { once: true });
+    document.addEventListener('click', desbloquearAudio, { once: true });
+    document.addEventListener('keydown', desbloquearAudio, { once: true });
+
+    async function playSound(nombreArchivo) {
+        const ruta = ARCHIVOS_AUDIO[nombreArchivo] || ('./' + nombreArchivo);
         try {
-            const audio = new Audio('./' + file);
-            audio.play().catch(() => {});
-        } catch(e) {}
+            let audio = audioCache[nombreArchivo];
+            if (!audio) {
+                audio = new Audio(ruta);
+                audio.preload = 'auto';
+                audio.volume = 1.0;
+                audioCache[nombreArchivo] = audio;
+            }
+            audio.currentTime = 0;
+            audio.volume = 1.0;
+            await audio.play();
+        } catch (err) {
+            console.warn('⚠️ No se pudo reproducir', ruta, '→', err.name, err.message);
+            if (err.name === 'NotAllowedError') {
+                console.warn('El navegador bloqueó el audio. Se necesita una interacción del usuario.');
+            } else if (err.name === 'NotSupportedError' || err.name === 'NotReadableError') {
+                console.error('El archivo no existe o no se puede leer:', ruta);
+                mostrarToast('❌ No se encontró ' + nombreArchivo);
+            }
+        }
     }
 
     function playStartSound() { playSound('start.mp3'); }
     function playClickSound() { playSound('sound1.mp3'); }
+    function reproducirNotificacionSonido() { playSound('notificacion.mp3'); }
 
     function blockButtons(ms = 500) {
         if (isProcessing) return false;
@@ -1145,7 +1211,8 @@ VUELTA:
     });
 
     window.addEventListener('load', () => {
-        solicitarPermisoNotificaciones();
+            solicitarPermisoNotificaciones();
+            precargarAudios();
 
         poblarEmpresas();
         const empGuardada = localStorage.getItem('formato_empresa');
@@ -1175,7 +1242,6 @@ VUELTA:
         }
         updateMainButton();
         updateDisplay();
-        setTimeout(playStartSound, 500);
         inicializarAutocompletado();
     });
 
