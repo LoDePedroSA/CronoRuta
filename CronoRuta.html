@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../Assets/Logo Nuevo LDP.png" type="image/x-icon">
+    <title>CronoRuta Pro</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --surface-light: #0f3460;
+            --primary: #e94560;
+            --secondary: #533483;
+            --accent: #0ea5e9;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #334155;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 580px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .separator {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 4px 0;
+            opacity: 0.6;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .navbar-time {
+            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .navbar-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--surface-light);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .navbar-btn:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.2);
+            transform: scale(1.05);
+        }
+
+        .navbar-btn.red {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: #fff;
+        }
+
+        .navbar-btn.red:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .navbar-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .counter-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .counter-header span {
+            background: var(--surface-light);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .counter-header strong {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .time-display {
+            text-align: center;
+            font-size: 4.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+            letter-spacing: -2px;
+            padding: 16px 0;
+            transition: color 0.4s ease;
+        }
+
+        .time-display.going {
+            color: var(--success);
+            text-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+        }
+
+        .time-display.warning {
+            color: var(--warning);
+            text-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
+        }
+
+        .time-display.returning {
+            color: var(--danger);
+            text-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+        }
+
+        .time-display.paused {
+            color: var(--text-muted);
+        }
+
+        .phase-indicator {
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .phase-ida {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .phase-espera {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .phase-vuelta {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .total-time {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            padding: 8px;
+            background: var(--surface-light);
+            border-radius: 8px;
+        }
+
+        .total-time strong {
+            color: var(--accent);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+            flex: 1;
+            min-width: 120px;
+            font-family: inherit;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #0284c7;
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            background: var(--surface-light);
+            border-color: var(--accent);
+        }
+
+        .btn-copy {
+            background: var(--secondary);
+            color: #fff;
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            font-size: 1rem;
+        }
+        .btn-copy:hover {
+            background: #6d28d9;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-main {
+            background: var(--accent);
+            color: #fff;
+            font-size: 1.1rem;
+            padding: 14px 20px;
+            width: 100%;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .btn-main:hover {
+            background: #0284c7;
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.5);
+        }
+        .btn-main:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-row input,
+        .input-row select {
+            flex: 1;
+        }
+
+        .input-row .btn {
+            flex: 0 0 auto;
+            min-width: auto;
+            padding: 10px 12px;
+            font-size: 0.75rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--surface-light);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+
+        input::placeholder {
+            color: #64748b;
+        }
+
+        input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        select option {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .route-time-badge {
+            display: inline-block;
+            background: var(--surface-light);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+            color: var(--accent);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow);
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+
+        .modal p {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .modal .btn-group {
+            margin-top: 16px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 200;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .result-panel {
+            display: none;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-top: 16px;
+            white-space: pre-wrap;
+            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result-panel.active {
+            display: block;
+        }
+
+        @media (max-width: 480px) {
+            .time-display {
+                font-size: 3rem;
+            }
+            .btn {
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
+            .navbar-time {
+                font-size: 0.9rem;
+            }
+            .navbar-btn {
+                width: 36px;
+                height: 36px;
+            }
+            .navbar-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+            .btn-main {
+                font-size: 0.9rem;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="navbar">
+            <button class="navbar-btn red" onclick="abrirModalFormato()" aria-label="Cambiar empresa">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
+                    <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                </svg>
+            </button>
+            <div class="navbar-time" id="clockDisplay">--:--</div>
+            <button class="navbar-btn" onclick="abrirModalPreferencias()" aria-label="Preferencias">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="card" id="counterCard">
+            <div class="counter-header">
+                <span>🚏 Ramal: <strong id="ramalDisplay">—</strong></span>
+                <span>🔢 Línea: <strong id="lineaDisplay">—</strong></span>
+            </div>
+
+            <div class="time-display paused" id="timeDisplay">+ 00:00</div>
+
+            <div style="text-align:center;">
+                <span class="phase-indicator phase-ida" id="phaseIndicator">⏳ Esperando inicio</span>
+                <span class="route-time-badge" id="routeTimeBadge">⏱️ 10 min</span>
+            </div>
+
+            <div class="total-time" id="totalTimeDisplay">
+                Tiempo total: <strong>—</strong>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="card">
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="abrirModal('tiempo')">⏱️ Definir tiempo recorrido</button>
+            </div>
+            <div style="margin-top:12px;">
+                <button class="btn btn-main" id="btnMain">Iniciar Ramal - S: IDA</button>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="card">
+            <h3 style="margin-bottom:16px; font-size:1rem; color:var(--accent);">📋 Formulario para completar el formato</h3>
+
+            <div class="form-group" id="fg-name">
+                <label>Ingrese su Nombre y Apellido:</label>
+                <input type="text" id="name" placeholder="Ej: Juan Pérez" class="autocomplete" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-legajo">
+                <label>Ingrese su legajo:</label>
+                <input type="text" id="legajo" placeholder="Ej: 2001" class="autocomplete" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-int">
+                <label>Ingrese su número de interno:</label>
+                <input type="text" id="int" placeholder="Ej: 4521" class="autocomplete" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-modelo">
+                <label>Modelo del colectivo (opcional):</label>
+                <input type="text" id="modelo" placeholder="Ej: Mercedes Benz" class="autocomplete" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-ing-srv">
+                <label>Horario de Ingreso de Servicio:</label>
+                <div class="input-row">
+                    <input type="time" id="ing-srv" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('ing-srv')" id="btn-ing-srv">🕐 Ahora</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="fg-sda-term-i">
+                <label>Horario de Salida de la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="sda-term-i" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('sda-term-i')" id="btn-sda-term-i">🕐 Ahora</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="fg-llg-term-i">
+                <label>Horario de Llegada a la 2da Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="llg-term-i" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('llg-term-i')" id="btn-llg-term-i">🕐 Ahora</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="fg-receso">
+                <label>Tiempo de descanso (minutos):</label>
+                <input type="number" id="receso" placeholder="Ej: 15" min="0" value="15" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-sda-term-v">
+                <label>Horario de Salida hacia la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="sda-term-v" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('sda-term-v')" id="btn-sda-term-v">🕐 Ahora</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="fg-llg-term-v">
+                <label>Horario de Llegada a la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="llg-term-v" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('llg-term-v')" id="btn-llg-term-v">🕐 Ahora</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="fg-satisfaccion">
+                <label>Satisfacción (opcional):</label>
+                <input type="text" id="satisfaccion" placeholder="Ej: Excelente" class="autocomplete" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-adelanto_atraso_ida">
+                <label>Adelanto / Atraso IDA (minutos):</label>
+                <input type="text" id="adelanto_atraso_ida" placeholder="Se calcula automáticamente" class="autocomplete" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="fg-adelanto_atraso_vuelta">
+                <label>Adelanto / Atraso VUELTA (minutos):</label>
+                <input type="text" id="adelanto_atraso_vuelta" placeholder="Se calcula automáticamente" class="autocomplete" autocomplete="off">
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;" onclick="completar()">📨 Enviar</button>
+
+            <div class="result-panel" id="resultPanel"></div>
+            <button class="btn btn-copy" id="btnCopy" style="display:none;" onclick="copiarAlPortapapeles()">📋 Copiar al portapapeles</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">Definir</h3>
+            <input type="text" id="modalInput" placeholder="Ingrese el valor...">
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn btn-primary" id="modalConfirm">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="formatoOverlay">
+        <div class="modal">
+            <h3>Seleccionar Empresa / Línea / Ramal</h3>
+            <div class="form-group">
+                <label>Empresa:</label>
+                <select id="empresaSelect"></select>
+            </div>
+            <div class="form-group" id="lineaGroup">
+                <label>Línea:</label>
+                <select id="lineaSelect"></select>
+            </div>
+            <div class="form-group" id="ramalGroup">
+                <label>Ramal:</label>
+                <select id="ramalSelect"></select>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="confirmarFormato()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="preferenciasOverlay">
+        <div class="modal">
+            <h3>Preferencias de Datos</h3>
+            <p>¿Quiere completar la planilla con los datos del Contador de Servicio o los rellenas a mano?</p>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="saveData('contador-si')">✅ Sí, quiero usar los datos del Contador de Servicio</button>
+                <button class="btn btn-danger" onclick="saveData('contador-no')">❌ No, prefiero rellenar los datos a mano</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="esperaModal">
+        <div class="modal">
+            <h3>⏳ Tiempo de espera</h3>
+            <p>¿Cuántos minutos de espera va a realizar?</p>
+            <input type="number" id="esperaInput" placeholder="Ej: 15" min="0" value="15">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="confirmarEspera()">Confirmar espera</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">✅ Copiado al portapapeles</div>
+
+    <script>
+        (function(){
+            let ramal = '';
+            let linea = '';
+            let formatActual = '';
+            let totalRouteSeconds = 600;
+            let phase = 'idle';
+            let mainState = 1;
+            let idaTime = 0;
+            let esperaTime = 0;
+            let vueltaTime = 0;
+            let currentSegmentStart = null;
+            let timerInterval = null;
+            let currentElapsed = 0;
+            let esperaDuration = 0;
+            let esperaConfirmada = false;
+            let idaFinalizada = false;
+            let isProcessing = false;
+            let esperaAutomaticaDisparada = false;
+
+            const EMPRESAS = {
+                callao: { nombre: 'Transportes Callao S.A.', lineas: ['12'], ramales: ['A">"Z'] },
+                primeroJulio: { nombre: 'Primero de Julio S.A.', lineas: ['195'], ramales: ['X Dique Lujan'] },
+                condor: { nombre: 'Condor SRL', lineas: ['L4'], ramales: ['Liniers Directo'] },
+                casanova: { nombre: 'Transporte Automotor Casanova S.A.', lineas: ['208', '11'], ramales: ['Geli - U. de Lomas - San Justo - Est. Isidro Casanova'] },
+                moqsa: { nombre: 'Micro Omnibus Quilmes S.A.', lineas: ['159', '219', '300', '584', '603', '619'], ramales: ['Correo - Berazategui'] },
+                laUnionVicenteLopez: { nombre: 'La Union de Vicente Lopez', lineas: ['229'], ramales: ['X220'] },
+                chubut: { nombre: 'Empresas C. R. Chubut', lineas: ['229'], ramales: ['A'] }
+            };
+
+            const FORMATO_CAMPOS = {
+                callao: ['name','int','ing-srv','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v'],
+                primeroJulio: ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'],
+                condor: ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v'],
+                casanova: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','adelanto_atraso_ida','adelanto_atraso_vuelta'],
+                moqsa: ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'],
+                laUnionVicenteLopez: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion'],
+                chubut: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion']
+            };
+
+            const TODOS_CAMPOS = ['name','legajo','int','modelo','ing-srv','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'];
+
+            const timeDisplay = document.getElementById('timeDisplay');
+            const phaseIndicator = document.getElementById('phaseIndicator');
+            const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+            const ramalDisplay = document.getElementById('ramalDisplay');
+            const lineaDisplay = document.getElementById('lineaDisplay');
+            const routeTimeBadge = document.getElementById('routeTimeBadge');
+            const btnMain = document.getElementById('btnMain');
+            const resultPanel = document.getElementById('resultPanel');
+            const btnCopy = document.getElementById('btnCopy');
+            const toast = document.getElementById('toast');
+            const clockDisplay = document.getElementById('clockDisplay');
+
+            const ingSrvInput = document.getElementById('ing-srv');
+            const sdaTermIInput = document.getElementById('sda-term-i');
+            const llgTermIInput = document.getElementById('llg-term-i');
+            const sdaTermVInput = document.getElementById('sda-term-v');
+            const llgTermVInput = document.getElementById('llg-term-v');
+            const recesoInput = document.getElementById('receso');
+            const nameInput = document.getElementById('name');
+            const satisfaccionInput = document.getElementById('satisfaccion');
+            const adelantoAtrasoIDAInput = document.getElementById('adelanto_atraso_ida');
+            const adelantoAtrasoVUELTAInput = document.getElementById('adelanto_atraso_vuelta');
+
+            function playSound(file) {
+                try {
+                    const audio = new Audio('../Assets/' + file);
+                    audio.play().catch(e => console.warn('Audio no reproducido:', e));
+                } catch(e) {}
+            }
+
+            function playStartSound() { playSound('start.mp3'); }
+            function playClickSound() { playSound('sound1.mp3'); }
+
+            function blockButtons(ms = 500) {
+                if (isProcessing) return false;
+                isProcessing = true;
+                document.querySelectorAll('button:not(.navbar-btn)').forEach(b => b.disabled = true);
+                setTimeout(() => {
+                    document.querySelectorAll('button:not(.navbar-btn)').forEach(b => b.disabled = false);
+                    isProcessing = false;
+                }, ms);
+                return true;
+            }
+
+            function handleStartSound() { playStartSound(); }
+
+            function iniciarVuelta() {
+                if (phase !== 'espera') return;
+                esperaTime += Math.floor((Date.now() - currentSegmentStart) / 1000);
+                currentElapsed = 0;
+                phase = 'vuelta';
+                currentSegmentStart = Date.now();
+                mainState = 4;
+                updateMainButton();
+                playStartSound();
+                updateDisplay();
+            }
+
+            function formatTime(totalSeconds) {
+                const isNegative = totalSeconds < 0;
+                const abs = Math.abs(totalSeconds);
+                const mins = Math.floor(abs / 60);
+                const secs = abs % 60;
+                const sign = isNegative ? '- ' : '+ ';
+                return sign + String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            }
+
+            function updateDisplay() {
+                if (currentSegmentStart && phase !== 'idle') {
+                    currentElapsed = Math.floor((Date.now() - currentSegmentStart) / 1000);
+                }
+
+                let displayTime = 0;
+                let cssClass = 'paused';
+                let remaining = 0;
+
+                if (phase === 'ida') {
+                    const totalElapsed = idaTime + currentElapsed;
+                    remaining = totalRouteSeconds - totalElapsed;
+                    displayTime = remaining > 0 ? -remaining : Math.abs(remaining);
+                } else if (phase === 'espera') {
+                    displayTime = esperaTime + currentElapsed;
+                    cssClass = 'going';
+                    if (esperaDuration > 0 && currentElapsed >= esperaDuration && !esperaAutomaticaDisparada) {
+                        esperaAutomaticaDisparada = true;
+                        iniciarVuelta();
+                        return;
+                    }
+                } else if (phase === 'vuelta') {
+                    const totalElapsed = vueltaTime + currentElapsed;
+                    remaining = totalRouteSeconds - totalElapsed;
+                    displayTime = remaining > 0 ? -remaining : Math.abs(remaining);
+                }
+
+                if (phase === 'ida' || phase === 'vuelta') {
+                    const ratio = remaining / totalRouteSeconds;
+                    if (remaining > 0 && ratio > 0.55) {
+                        cssClass = 'going';
+                    } else if (remaining > 0 && ratio >= 0.45) {
+                        cssClass = 'warning';
+                    } else {
+                        cssClass = 'returning';
+                    }
+                }
+
+                timeDisplay.textContent = formatTime(displayTime);
+                timeDisplay.className = 'time-display ' + cssClass;
+
+                let phaseText = '⏳ Esperando inicio';
+                let phaseClass = 'phase-ida';
+                if (phase === 'ida') { phaseText = '🟢 IDA'; phaseClass = 'phase-ida'; }
+                else if (phase === 'espera') { phaseText = '🟡 ESPERA'; phaseClass = 'phase-espera'; }
+                else if (phase === 'vuelta') { phaseText = '🔴 VUELTA'; phaseClass = 'phase-vuelta'; }
+                phaseIndicator.textContent = phaseText;
+                phaseIndicator.className = 'phase-indicator ' + phaseClass;
+
+                const total = idaTime + currentElapsed + esperaTime + vueltaTime;
+                totalTimeDisplay.innerHTML = `Tiempo total: <strong>${formatTime(total)}</strong>`;
+
+                autoCompletarCampos();
+            }
+
+            function autoCompletarCampos() {
+                const valor = localStorage.getItem('valores');
+                if (valor !== 'contador-si') return;
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = hh + ':' + mm;
+
+                if (phase === 'ida' && !ingSrvInput.value) {
+                    ingSrvInput.value = timeStr;
+                }
+                if (phase === 'ida' && currentElapsed > 0 && !sdaTermIInput.value) {
+                    const startTime = new Date(Date.now() - (idaTime + currentElapsed) * 1000);
+                    const shh = String(startTime.getHours()).padStart(2, '0');
+                    const smm = String(startTime.getMinutes()).padStart(2, '0');
+                    sdaTermIInput.value = shh + ':' + smm;
+                }
+                if (idaFinalizada && !llgTermIInput.value) {
+                    llgTermIInput.value = timeStr;
+                }
+                if (phase === 'espera' && !recesoInput.value && esperaConfirmada) {
+                    const esperaMin = Math.floor(esperaDuration / 60);
+                    recesoInput.value = esperaMin || 15;
+                }
+                if (phase === 'vuelta' && currentElapsed > 0 && !sdaTermVInput.value) {
+                    const startTime = new Date(Date.now() - (vueltaTime + currentElapsed) * 1000);
+                    const shh = String(startTime.getHours()).padStart(2, '0');
+                    const smm = String(startTime.getMinutes()).padStart(2, '0');
+                    sdaTermVInput.value = shh + ':' + smm;
+                }
+                if (phase === 'vuelta' && vueltaTime + currentElapsed >= totalRouteSeconds && !llgTermVInput.value) {
+                    llgTermVInput.value = timeStr;
+                }
+            }
+
+            function calcularAdelantoAtrasoIDA() {
+                if (localStorage.getItem('valores') !== 'contador-si') return;
+                const real = idaTime;
+                const programado = totalRouteSeconds;
+                const diffMinutos = Math.round((real - programado) / 60);
+                let texto = '';
+                if (diffMinutos === 0) {
+                    texto = '0 min';
+                } else if (diffMinutos > 0) {
+                    texto = '-' + diffMinutos + ' min';
+                } else {
+                    texto = '+' + Math.abs(diffMinutos) + ' min';
+                }
+                adelantoAtrasoIDAInput.value = texto;
+                localStorage.setItem('input_adelanto_atraso_ida', texto);
+            }
+
+            function calcularAdelantoAtrasoVUELTA() {
+                if (localStorage.getItem('valores') !== 'contador-si') return;
+                const real = vueltaTime;
+                const programado = totalRouteSeconds;
+                const diffMinutos = Math.round((real - programado) / 60);
+                let texto = '';
+                if (diffMinutos === 0) {
+                    texto = '0 min';
+                } else if (diffMinutos > 0) {
+                    texto = '-' + diffMinutos + ' min';
+                } else {
+                    texto = '+' + Math.abs(diffMinutos) + ' min';
+                }
+                adelantoAtrasoVUELTAInput.value = texto;
+                localStorage.setItem('input_adelanto_atraso_vuelta', texto);
+            }
+
+            function updateMainButton() {
+                const texts = {
+                    1: 'Iniciar Ramal - S: IDA',
+                    2: 'Finalizar Ramal - S: IDA',
+                    3: 'Iniciar Ramal - S: VUELTA',
+                    4: 'Finalizar Ramal - S: VUELTA'
+                };
+                btnMain.textContent = texts[mainState] || 'Iniciar Ramal - S: IDA';
+            }
+
+            function handleMainClick() {
+                if (!blockButtons()) return;
+                playClickSound();
+
+                if (mainState === 1) {
+                    if (!ramal || !linea) {
+                        alert('⚠️ Por favor, defina la empresa, línea y ramal antes de iniciar.');
+                        return;
+                    }
+                    detenerTimer();
+                    idaTime = 0;
+                    esperaTime = 0;
+                    vueltaTime = 0;
+                    currentElapsed = 0;
+                    esperaConfirmada = false;
+                    idaFinalizada = false;
+                    esperaAutomaticaDisparada = false;
+                    if (localStorage.getItem('valores') === 'contador-si') {
+                        ingSrvInput.value = '';
+                        sdaTermIInput.value = '';
+                        llgTermIInput.value = '';
+                        recesoInput.value = '';
+                        sdaTermVInput.value = '';
+                        llgTermVInput.value = '';
+                        adelantoAtrasoIDAInput.value = '';
+                        adelantoAtrasoVUELTAInput.value = '';
+                    }
+                    phase = 'ida';
+                    currentSegmentStart = Date.now();
+                    mainState = 2;
+                    updateMainButton();
+                    handleStartSound();
+                    timerInterval = setInterval(updateDisplay, 200);
+                    updateDisplay();
+                }
+                else if (mainState === 2) {
+                    if (phase !== 'ida') return;
+                    document.getElementById('esperaModal').classList.add('active');
+                    document.getElementById('esperaInput').focus();
+                }
+                else if (mainState === 3) {
+                    if (phase !== 'espera') return;
+                    iniciarVuelta();
+                }
+                else if (mainState === 4) {
+                    if (phase !== 'vuelta') return;
+                    vueltaTime += Math.floor((Date.now() - currentSegmentStart) / 1000);
+                    currentElapsed = 0;
+                    detenerTimer();
+                    phase = 'idle';
+                    mainState = 1;
+                    updateMainButton();
+                    handleStartSound();
+                    if (localStorage.getItem('valores') === 'contador-si') {
+                        const now = new Date();
+                        const hh = String(now.getHours()).padStart(2, '0');
+                        const mm = String(now.getMinutes()).padStart(2, '0');
+                        llgTermVInput.value = hh + ':' + mm;
+                        calcularAdelantoAtrasoVUELTA();
+                    }
+                    updateDisplay();
+                }
+            }
+
+            function confirmarEspera() {
+                const input = document.getElementById('esperaInput');
+                const minutos = parseFloat(input.value);
+                if (isNaN(minutos) || minutos < 0) {
+                    alert('⚠️ Por favor, ingrese un número válido de minutos.');
+                    return;
+                }
+                esperaDuration = minutos * 60;
+                esperaConfirmada = true;
+                esperaAutomaticaDisparada = false;
+                if (localStorage.getItem('valores') === 'contador-si') {
+                    recesoInput.value = minutos;
+                }
+                document.getElementById('esperaModal').classList.remove('active');
+
+                if (phase === 'ida') {
+                    idaTime += Math.floor((Date.now() - currentSegmentStart) / 1000);
+                    currentElapsed = 0;
+                    idaFinalizada = true;
+                    if (localStorage.getItem('valores') === 'contador-si') {
+                        const now = new Date();
+                        const hh = String(now.getHours()).padStart(2, '0');
+                        const mm = String(now.getMinutes()).padStart(2, '0');
+                        llgTermIInput.value = hh + ':' + mm;
+                        calcularAdelantoAtrasoIDA();
+                    }
+                    phase = 'espera';
+                    currentSegmentStart = Date.now();
+                    mainState = 3;
+                    updateMainButton();
+                    handleStartSound();
+                    updateDisplay();
+                }
+            }
+
+            function detenerTimer() {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                currentSegmentStart = null;
+                currentElapsed = 0;
+            }
+
+            let modalMode = '';
+
+            function abrirModal(mode) {
+                modalMode = mode;
+                const title = document.getElementById('modalTitle');
+                const input = document.getElementById('modalInput');
+                if (mode === 'tiempo') {
+                    title.textContent = 'Definir tiempo del recorrido (minutos)';
+                    input.value = totalRouteSeconds / 60;
+                    input.placeholder = 'Ej: 10';
+                    input.type = 'number';
+                }
+                document.getElementById('modalOverlay').classList.add('active');
+                input.focus();
+            }
+
+            function cerrarModal() {
+                document.getElementById('modalOverlay').classList.remove('active');
+            }
+
+            document.getElementById('modalConfirm').addEventListener('click', () => {
+                const input = document.getElementById('modalInput');
+                const valor = input.value.trim();
+                if (modalMode === 'tiempo') {
+                    const minutos = parseFloat(valor);
+                    if (!isNaN(minutos) && minutos > 0) {
+                        totalRouteSeconds = Math.round(minutos * 60);
+                        routeTimeBadge.textContent = `⏱️ ${Math.round(minutos)} min`;
+                        localStorage.setItem('tiempo_guardado', minutos);
+                    }
+                }
+                cerrarModal();
+            });
+
+            document.getElementById('modalInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') document.getElementById('modalConfirm').click();
+                if (e.key === 'Escape') cerrarModal();
+            });
+
+            document.getElementById('modalOverlay').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) cerrarModal();
+            });
+
+            function abrirModalPreferencias() {
+                document.getElementById('preferenciasOverlay').classList.add('active');
+            }
+
+            function cerrarPreferencias() {
+                document.getElementById('preferenciasOverlay').classList.remove('active');
+            }
+
+            document.getElementById('preferenciasOverlay').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) cerrarPreferencias();
+            });
+
+            function saveData(value) {
+                try {
+                    localStorage.setItem('valores', value);
+                    cerrarPreferencias();
+                    aplicarPreferencias();
+                    mostrarToast('✅ Preferencia guardada correctamente');
+                } catch (error) {
+                    console.error('Error al guardar en localStorage:', error);
+                }
+            }
+
+            function aplicarPreferencias() {
+                const valor = localStorage.getItem('valores');
+                const campos = ['ing-srv', 'sda-term-i', 'llg-term-i', 'receso', 'sda-term-v', 'llg-term-v'];
+                const botones = ['btn-ing-srv', 'btn-sda-term-i', 'btn-llg-term-i', 'btn-sda-term-v', 'btn-llg-term-v'];
+                campos.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = (valor === 'contador-si');
+                });
+                botones.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = (valor === 'contador-si');
+                });
+            }
+
+            function guardarInput(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const val = el.value;
+                if (val) localStorage.setItem('input_' + id, val);
+                else localStorage.removeItem('input_' + id);
+            }
+
+            function cargarInputs() {
+                const ids = ['name','legajo','int','modelo','ing-srv','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'];
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const saved = localStorage.getItem('input_' + id);
+                    if (saved) el.value = saved;
+                });
+                const tiempoGuardado = localStorage.getItem('tiempo_guardado');
+                if (tiempoGuardado) {
+                    const min = parseFloat(tiempoGuardado);
+                    if (!isNaN(min) && min > 0) {
+                        totalRouteSeconds = Math.round(min * 60);
+                        routeTimeBadge.textContent = `⏱️ ${Math.round(min)} min`;
+                    }
+                }
+                try {
+                    const nombre = localStorage.getItem('chofer_nombre');
+                    const legajo = localStorage.getItem('chofer_legajo');
+                    const interno = localStorage.getItem('chofer_interno');
+                    if (nombre) document.getElementById('name').value = nombre;
+                    if (legajo) document.getElementById('legajo').value = legajo;
+                    if (interno) document.getElementById('int').value = interno;
+                } catch(e) {}
+            }
+
+            function guardarDatosChofer() {
+                try {
+                    localStorage.setItem('chofer_nombre', document.getElementById('name').value.trim());
+                    localStorage.setItem('chofer_legajo', document.getElementById('legajo').value.trim());
+                    localStorage.setItem('chofer_interno', document.getElementById('int').value.trim());
+                } catch(e) {}
+            }
+
+            function mostrarToast(mensaje) {
+                toast.textContent = mensaje;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2500);
+            }
+
+            function setNow(inputId) {
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById(inputId).value = hh + ':' + mm;
+                guardarInput(inputId);
+            }
+
+            function actualizarReloj() {
+                const ahora = new Date();
+                const hh = String(ahora.getHours()).padStart(2, '0');
+                const mm = String(ahora.getMinutes()).padStart(2, '0');
+                clockDisplay.textContent = hh + ':' + mm;
+            }
+
+            function inicializarAutocompletado() {
+                const inputs = document.querySelectorAll('.autocomplete');
+                inputs.forEach(input => {
+                    const inputId = input.id;
+                    if (!inputId) return;
+                    let datalist = document.getElementById('datalist_' + inputId);
+                    if (!datalist) {
+                        datalist = document.createElement('datalist');
+                        datalist.id = 'datalist_' + inputId;
+                        document.body.appendChild(datalist);
+                    }
+                    input.setAttribute('list', 'datalist_' + inputId);
+
+                    input.addEventListener('focus', function() {
+                        cargarHistorial(inputId);
+                    });
+
+                    input.addEventListener('input', function() {
+                        const valor = this.value.trim();
+                        if (valor.length > 0) {
+                            guardarHistorial(inputId, valor);
+                        }
+                    });
+                });
+            }
+
+            function cargarHistorial(inputId) {
+                const datalist = document.getElementById('datalist_' + inputId);
+                if (!datalist) return;
+                const historial = JSON.parse(localStorage.getItem('autocomplete_history') || '{}');
+                const valores = historial[inputId] || [];
+                datalist.innerHTML = '';
+                valores.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    datalist.appendChild(option);
+                });
+            }
+
+            function guardarHistorial(inputId, valor) {
+                const historial = JSON.parse(localStorage.getItem('autocomplete_history') || '{}');
+                if (!historial[inputId]) historial[inputId] = [];
+                let valores = historial[inputId];
+                valores = valores.filter(v => v !== valor);
+                valores.unshift(valor);
+                if (valores.length > 10) valores.pop();
+                historial[inputId] = valores;
+                localStorage.setItem('autocomplete_history', JSON.stringify(historial));
+            }
+
+            function poblarEmpresas() {
+                const sel = document.getElementById('empresaSelect');
+                sel.innerHTML = '';
+                const blank = document.createElement('option');
+                blank.value = '';
+                blank.textContent = 'Seleccione una empresa';
+                blank.disabled = true;
+                sel.appendChild(blank);
+                Object.keys(EMPRESAS).forEach(key => {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = EMPRESAS[key].nombre;
+                    sel.appendChild(opt);
+                });
+            }
+
+            function poblarLineas(empKey) {
+                const sel = document.getElementById('lineaSelect');
+                sel.innerHTML = '';
+                if (!empKey || !EMPRESAS[empKey]) return;
+                EMPRESAS[empKey].lineas.forEach(l => {
+                    const opt = document.createElement('option');
+                    opt.value = l;
+                    opt.textContent = l;
+                    sel.appendChild(opt);
+                });
+            }
+
+            function poblarRamales(empKey) {
+                const sel = document.getElementById('ramalSelect');
+                sel.innerHTML = '';
+                if (!empKey || !EMPRESAS[empKey]) return;
+                EMPRESAS[empKey].ramales.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.textContent = r;
+                    sel.appendChild(opt);
+                });
+            }
+
+            function aplicarCamposVisibles(formato) {
+                const campos = FORMATO_CAMPOS[formato] || [];
+                TODOS_CAMPOS.forEach(id => {
+                    const fg = document.getElementById('fg-' + id);
+                    if (fg) fg.style.display = campos.includes(id) ? '' : 'none';
+                });
+            }
+
+            function abrirModalFormato() {
+                const emp = formatActual || localStorage.getItem('formato_empresa') || '';
+                if (emp && EMPRESAS[emp]) {
+                    document.getElementById('empresaSelect').value = emp;
+                    poblarLineas(emp);
+                    poblarRamales(emp);
+                    const lin = linea || localStorage.getItem('linea_guardado');
+                    const ram = ramal || localStorage.getItem('ramal_guardado');
+                    if (lin) document.getElementById('lineaSelect').value = lin;
+                    if (ram) document.getElementById('ramalSelect').value = ram;
+                } else {
+                    poblarLineas('');
+                    poblarRamales('');
+                }
+                document.getElementById('formatoOverlay').classList.add('active');
+            }
+
+            function confirmarFormato() {
+                const emp = document.getElementById('empresaSelect').value;
+                if (!emp) {
+                    alert('⚠️ Seleccione una empresa.');
+                    return;
+                }
+                const lin = document.getElementById('lineaSelect').value;
+                const ram = document.getElementById('ramalSelect').value;
+                formatActual = emp;
+                linea = lin;
+                ramal = ram;
+                localStorage.setItem('formato_empresa', emp);
+                localStorage.setItem('linea_guardado', lin);
+                localStorage.setItem('ramal_guardado', ram);
+                ramalDisplay.textContent = ram || '—';
+                lineaDisplay.textContent = lin || '—';
+                aplicarCamposVisibles(emp);
+                document.getElementById('formatoOverlay').classList.remove('active');
+            }
+
+            document.getElementById('empresaSelect').addEventListener('change', function() {
+                poblarLineas(this.value);
+                poblarRamales(this.value);
+            });
+
+            document.getElementById('formatoOverlay').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    document.getElementById('formatoOverlay').classList.remove('active');
+                }
+            });
+
+            function completar() {
+                guardarDatosChofer();
+                const formato = formatActual;
+                if (!formato) {
+                    alert('⚠️ Por favor, seleccione una empresa.');
+                    return;
+                }
+                const name = document.getElementById('name').value.trim();
+                const legajo = document.getElementById('legajo').value.trim();
+                const interno = document.getElementById('int').value.trim();
+                const modelo = document.getElementById('modelo').value.trim();
+                const ingSrv = document.getElementById('ing-srv').value;
+                const sdaTermI = document.getElementById('sda-term-i').value;
+                const llgTermI = document.getElementById('llg-term-i').value;
+                const recesoValor = document.getElementById('receso').value;
+                const sdaTermV = document.getElementById('sda-term-v').value;
+                const llgTermV = document.getElementById('llg-term-v').value;
+                const satisfaccion = document.getElementById('satisfaccion').value.trim();
+                const adelantoAtrasoIDA = document.getElementById('adelanto_atraso_ida').value.trim();
+                const adelantoAtrasoVUELTA = document.getElementById('adelanto_atraso_vuelta').value.trim();
+
+                const requeridosBase = ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v'];
+                if (formato === 'callao') requeridosBase.push('ing-srv','receso');
+                if (formato === 'casanova') requeridosBase.push('receso');
+                if (formato === 'laUnionVicenteLopez') requeridosBase.push('receso');
+                if (formato === 'chubut') requeridosBase.push('receso');
+
+                const faltantes = requeridosBase.filter(id => {
+                    const el = document.getElementById(id);
+                    return el && !el.value.trim();
+                });
+                if (faltantes.length) {
+                    alert('⚠️ Por favor, complete todos los campos antes de enviar.');
+                    return;
+                }
+
+                let plantilla = '';
+
+                if (formato === 'callao') {
+                    plantilla = `
+*Planilla✍🏻*
+*Horario de entrada:* ${ingSrv}
+*Inicio...*
+
+*Hora de salida de la Terminal:* ${sdaTermI}
+*Hora de llegada al destino:* ${llgTermI}
+
+*Descanso: ${recesoValor} minutos.*
+*Vuelta...*
+
+*Hora de salida de la Terminal:* ${sdaTermV}
+*Hora de llegada a la Terminal:* ${llgTermV}
+
+*Chófer:* ${name}
+*Interno:* ${interno}
+*Línea:* ${linea || '—'}-${ramal || '—'}
+`.trim();
+                } else if (formato === 'primeroJulio') {
+                    const atrasoIda = adelantoAtrasoIDA ? ` (${adelantoAtrasoIDA})` : '';
+                    const atrasoVuelta = adelantoAtrasoVUELTA ? ` (${adelantoAtrasoVUELTA})` : '';
+                    plantilla = `
+_*PLANILLA*_
+
+_Empresa:_ Primero de Julio S.A
+
+_Nombre del chófer:_ ${name}
+
+_Interno:_ ${interno}
+
+_Línea:_ ${linea || '—'}
+
+_Ramal:_ ${ramal || '—'}
+
+*HORARIO:* (Mañana/Tarde/Noche)
+
+*IDA*
+
+_Salida:_ ${sdaTermI}
+
+_Llegada:_ ${llgTermI}${atrasoIda}
+
+*VUELTA*
+
+_Salida:_ ${sdaTermV}
+
+_Llegada:_ ${llgTermV}${atrasoVuelta}
+
+_¿Satisfacción? %:_ ${satisfaccion || '_________________'}
+
+_Fotos ✅_
+`.trim();
+                } else if (formato === 'condor') {
+                    plantilla = `
+*PLANILLA CONDOR SRL*
+*Nombre del chofer:* ${name}
+*Interno:* ${interno}
+*Linea/recorrido:* ${linea || '—'} - ${ramal || '—'}
+*Turno:* noche
+*Vueltas:* 1
+*Horario*
+    *IDA 1:*
+Salida: ${sdaTermI}
+Llegada: ${llgTermI}
+
+*VUELTA 1:*
+Salida: ${sdaTermV}
+Llegada: ${llgTermV}
+`.trim();
+                } else if (formato === 'casanova') {
+                    plantilla = `
+Planilla Transporte Automotor Casanova S.A
+
+Linea : ${linea || '—'}
+Chofer : ${name}
+Coche: ${modelo || '—'}
+Interno : ${interno}
+Ramal : ${ramal || '—'}
+IDA
+
+Salida : ${sdaTermI}
+
+llegada: ${llgTermI}
+
+Adelanto/Atraso IDA: ${adelantoAtrasoIDA || '—'}
+
+ESPERA
+
+Espera : ${recesoValor} Minutos
+
+VUELTA           
+
+Salida : ${sdaTermV}
+
+Llegada: ${llgTermV}
+
+Adelanto/Atraso VUELTA: ${adelantoAtrasoVUELTA || '—'}
+
+Incidente : 
+`.trim();
+                } else if (formato === 'moqsa') {
+                    const atrasoIda = adelantoAtrasoIDA ? ` (${adelantoAtrasoIDA})` : '';
+                    const atrasoVuelta = adelantoAtrasoVUELTA ? ` (${adelantoAtrasoVUELTA})` : '';
+                    plantilla = `
+_*PLANILLA*_
+
+_Empresa:_ MOQSA
+
+_Nombre del chófer:_ ${name}
+
+_Interno:_ ${interno}
+
+_Línea:_ ${linea || '—'}
+
+_Ramal:_ ${ramal || '—'}
+
+*HORARIO:* (Mañana/Tarde/Noche)
+
+*IDA*
+
+_Salida:_ ${sdaTermI}
+
+_Llegada:_ ${llgTermI}${atrasoIda}
+
+*VUELTA*
+
+_Salida:_ ${sdaTermV}
+
+_Llegada:_ ${llgTermV}${atrasoVuelta}
+
+_¿Satisfacción? :_ ${satisfaccion || '_________________'}
+
+_Fotos ✅_
+`.trim();
+                } else if (formato === 'laUnionVicenteLopez') {
+                    plantilla = `
+_*Planillas La Unión de Vicente Lopez S.A*_
+
+*_Chofer: ${name}_* 
+*_Linea:_* ${linea || '—'}
+ *_Ramal:_* ${ramal || '—'}
+*_Interno:_* ${interno}
+*_Turno:_* 
+*_Unidad:_* ${modelo || '—'}
+
+*_IDA_*
+
+*_Salida:_* ${sdaTermI}
+*_Llegada:_* ${llgTermI}
+
+*_Espera:_* ${recesoValor}
+
+*_VUELTA_*
+
+*_Salida:_* ${sdaTermV}
+*_Llegada:_* ${llgTermV}
+*_Satisfaccion:_* ${satisfaccion || '_________________'}
+*_Justificación:_*
+`.trim();
+                } else if (formato === 'chubut') {
+                    plantilla = `
+*PLANILLA:* 
+
+*CHOFER:* ${name}
+*COCHE N°:* ${modelo || '—'}
+*RAMAL:* ${ramal || '—'}
+*INSPECCIÓN MECANICA:* 
+
+IDA:
+
+*SALIDA:* ${sdaTermI}
+*LLEGADA:* ${llgTermI}
+*ESPERA:* ${recesoValor}
+
+VUELTA:
+
+*SALIDA*: ${sdaTermV}
+*LLEGADA:* ${llgTermV}
+
+*INCONVENIENTES:* 
+*SATISFACCIÓN:* ${satisfaccion || '_________________'}
+*ESTADO DEL COCHE:*
+`.trim();
+                }
+
+                resultPanel.textContent = plantilla;
+                resultPanel.classList.add('active');
+                btnCopy.style.display = 'block';
+            }
+
+            function copiarAlPortapapeles() {
+                const texto = resultPanel.textContent;
+                navigator.clipboard.writeText(texto).then(() => {
+                    mostrarToast('✅ Copiado al portapapeles');
+                }).catch(() => {
+                    alert('❌ No se pudo copiar. Intente manualmente.');
+                });
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const target = e.target;
+                    if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') {
+                        return;
+                    }
+                    e.preventDefault();
+                    btnMain.click();
+                }
+            });
+
+            window.addEventListener('load', () => {
+                poblarEmpresas();
+                const empGuardada = localStorage.getItem('formato_empresa');
+                if (empGuardada && EMPRESAS[empGuardada]) {
+                    document.getElementById('empresaSelect').value = empGuardada;
+                    poblarLineas(empGuardada);
+                    poblarRamales(empGuardada);
+                    const lin = localStorage.getItem('linea_guardado');
+                    const ram = localStorage.getItem('ramal_guardado');
+                    if (lin) document.getElementById('lineaSelect').value = lin;
+                    if (ram) document.getElementById('ramalSelect').value = ram;
+                    formatActual = empGuardada;
+                    linea = lin || document.getElementById('lineaSelect').value;
+                    ramal = ram || document.getElementById('ramalSelect').value;
+                    ramalDisplay.textContent = ramal || '—';
+                    lineaDisplay.textContent = linea || '—';
+                    aplicarCamposVisibles(empGuardada);
+                } else {
+                    poblarLineas('');
+                    poblarRamales('');
+                }
+                cargarInputs();
+                aplicarPreferencias();
+                document.getElementById('formatoOverlay').classList.add('active');
+                if (!localStorage.getItem('valores')) {
+                    document.getElementById('preferenciasOverlay').classList.add('active');
+                }
+                updateMainButton();
+                updateDisplay();
+                actualizarReloj();
+                setInterval(actualizarReloj, 1000);
+                setTimeout(playStartSound, 500);
+                inicializarAutocompletado();
+            });
+
+            document.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('change', function() {
+                    if (this.id) guardarInput(this.id);
+                });
+                el.addEventListener('input', function() {
+                    if (this.id) {
+                        clearTimeout(this._timer);
+                        this._timer = setTimeout(() => guardarInput(this.id), 1000);
+                    }
+                });
+            });
+
+            btnMain.addEventListener('click', handleMainClick);
+
+            window.abrirModalPreferencias = abrirModalPreferencias;
+            window.saveData = saveData;
+            window.abrirModal = abrirModal;
+            window.cerrarModal = cerrarModal;
+            window.setNow = setNow;
+            window.completar = completar;
+            window.copiarAlPortapapeles = copiarAlPortapapeles;
+            window.confirmarEspera = confirmarEspera;
+            window.mostrarToast = mostrarToast;
+            window.abrirModalFormato = abrirModalFormato;
+            window.confirmarFormato = confirmarFormato;
+
+            document.getElementById('esperaModal').addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.getElementById('esperaModal').classList.remove('active');
+                }
+            });
+            document.getElementById('esperaInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') confirmarEspera();
+            });
+
+            mainState = 1;
+            updateMainButton();
+        })();
+    </script>
+</body>
+</html>
