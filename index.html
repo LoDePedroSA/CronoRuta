@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="../Assets/Logo Nuevo LDP.png" type="image/x-icon">
+    <link rel="icon" href="./icon-512.png" type="image/x-icon">
     <title>CronoRuta Pro</title>
     <style>
         :root {
@@ -73,6 +73,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
+            gap: 8px;
         }
 
         .navbar-time {
@@ -96,6 +97,7 @@
             justify-content: center;
             transition: all 0.3s ease;
             font-size: 1.2rem;
+            flex-shrink: 0;
         }
 
         .navbar-btn:hover {
@@ -114,6 +116,18 @@
             background: #dc2626;
             border-color: #dc2626;
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .navbar-btn.green {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+        }
+
+        .navbar-btn.green:hover {
+            background: #16a34a;
+            border-color: #16a34a;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
         }
 
         .navbar-btn svg {
@@ -501,7 +515,7 @@
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" id="mainContainer">
         <div class="navbar">
             <button class="navbar-btn red" onclick="abrirModalFormato()" aria-label="Cambiar empresa">
                 <svg viewBox="0 0 24 24">
@@ -510,6 +524,12 @@
                 </svg>
             </button>
             <div class="navbar-time" id="clockDisplay">--:--</div>
+            <button class="navbar-btn green" id="btnFloat" onclick="togglePiP()" aria-label="Ventana flotante" title="Ventana flotante">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <rect x="10" y="10" width="8" height="6" rx="1" ry="1"/>
+                </svg>
+            </button>
             <button class="navbar-btn" onclick="abrirModalPreferencias()" aria-label="Preferencias">
                 <svg viewBox="0 0 24 24">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -714,6 +734,9 @@
             let idaFinalizada = false;
             let isProcessing = false;
             let esperaAutomaticaDisparada = false;
+            let notificacionIdaEnviada = false;
+            let notificacionVueltaEnviada = false;
+            let notificacionEsperaEnviada = false;
 
             const EMPRESAS = {
                 callao: { nombre: 'Transportes Callao S.A.', lineas: ['12'], ramales: ['A">"Z'] },
@@ -760,9 +783,232 @@
             const adelantoAtrasoIDAInput = document.getElementById('adelanto_atraso_ida');
             const adelantoAtrasoVUELTAInput = document.getElementById('adelanto_atraso_vuelta');
 
+            // ==================== NOTIFICACIONES ====================
+            function solicitarPermisoNotificaciones() {
+                if (!('Notification' in window)) {
+                    console.warn('Este navegador no soporta notificaciones.');
+                    return;
+                }
+                if (Notification.permission === 'granted') return;
+                if (Notification.permission === 'denied') return;
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Permiso de notificaciones concedido.');
+                    }
+                });
+            }
+
+            function enviarNotificacion(titulo, cuerpo) {
+                if (!('Notification' in window)) return;
+                if (Notification.permission !== 'granted') return;
+                try {
+                    const notif = new Notification(titulo, {
+                        body: cuerpo,
+                        icon: './icon-512.png',
+                        badge: './icon-512.png',
+                        silent: false,
+                        requireInteraction: true
+                    });
+                    notif.onclick = function() {
+                        window.focus();
+                        notif.close();
+                    };
+                    setTimeout(() => notif.close(), 15000);
+                } catch (e) {
+                    console.warn('Error al mostrar notificación:', e);
+                }
+            }
+
+            function reproducirNotificacionSonido() {
+                playSound('notificacion.mp3');
+            }
+
+            // ==================== PIP (Picture-in-Picture) ====================
+            let pipWindow = null;
+
+            async function togglePiP() {
+                if (pipWindow) {
+                    pipWindow.close();
+                    pipWindow = null;
+                    return;
+                }
+                if (!('documentPictureInPicture' in window)) {
+                    alert('⚠️ La ventana flotante no está soportada en este navegador. Use Chrome, Edge u Opera.');
+                    return;
+                }
+                try {
+                    pipWindow = await documentPictureInPicture.requestWindow({
+                        width: 580,
+                        height: 300,
+                    });
+
+                    // Copiar estilos
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        body {
+                            margin: 0;
+                            padding: 12px;
+                            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+                            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                            color: #e2e8f0;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                        }
+                        .counter-card-pip {
+                            background: #16213e;
+                            border: 1px solid #334155;
+                            border-radius: 12px;
+                            padding: 16px;
+                            width: 100%;
+                            max-width: 520px;
+                            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+                        }
+                        .counter-header-pip {
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 12px;
+                            margin-bottom: 8px;
+                            font-size: 0.75rem;
+                            color: #94a3b8;
+                        }
+                        .counter-header-pip span {
+                            background: #0f3460;
+                            padding: 4px 10px;
+                            border-radius: 20px;
+                            font-weight: 500;
+                        }
+                        .counter-header-pip strong {
+                            color: #0ea5e9;
+                        }
+                        .time-display-pip {
+                            text-align: center;
+                            font-size: 3rem;
+                            font-weight: 700;
+                            font-variant-numeric: tabular-nums;
+                            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+                            letter-spacing: -2px;
+                            padding: 8px 0;
+                            transition: color 0.4s ease;
+                        }
+                        .time-display-pip.going { color: #22c55e; text-shadow: 0 0 20px rgba(34,197,94,0.3); }
+                        .time-display-pip.warning { color: #f59e0b; text-shadow: 0 0 20px rgba(245,158,11,0.4); }
+                        .time-display-pip.returning { color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.3); }
+                        .time-display-pip.paused { color: #94a3b8; }
+                        .phase-indicator-pip {
+                            text-align: center;
+                            font-size: 0.8rem;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 2px;
+                            margin-bottom: 4px;
+                            padding: 4px 12px;
+                            border-radius: 20px;
+                            display: inline-block;
+                        }
+                        .phase-ida-pip { background: rgba(34,197,94,0.15); color: #22c55e; }
+                        .phase-espera-pip { background: rgba(245,158,11,0.15); color: #f59e0b; }
+                        .phase-vuelta-pip { background: rgba(239,68,68,0.15); color: #ef4444; }
+                        .total-time-pip {
+                            text-align: center;
+                            font-size: 0.75rem;
+                            color: #94a3b8;
+                            margin-top: 6px;
+                            padding: 6px;
+                            background: #0f3460;
+                            border-radius: 8px;
+                        }
+                        .total-time-pip strong { color: #0ea5e9; }
+                        .btn-pip-close {
+                            position: fixed;
+                            top: 8px;
+                            right: 8px;
+                            width: 32px;
+                            height: 32px;
+                            border-radius: 50%;
+                            border: 1px solid #334155;
+                            background: #0f3460;
+                            color: #e2e8f0;
+                            cursor: pointer;
+                            font-size: 14px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 10;
+                        }
+                    `;
+                    pipWindow.document.head.appendChild(style);
+
+                    const cardHTML = `
+                        <div class="counter-card-pip">
+                            <div class="counter-header-pip">
+                                <span>🚏 Ramal: <strong id="pipRamal">—</strong></span>
+                                <span>🔢 Línea: <strong id="pipLinea">—</strong></span>
+                            </div>
+                            <div class="time-display-pip paused" id="pipTimeDisplay">+ 00:00</div>
+                            <div style="text-align:center;">
+                                <span class="phase-indicator-pip phase-ida-pip" id="pipPhaseIndicator">⏳ Esperando inicio</span>
+                                <span class="route-time-badge" id="pipRouteTimeBadge" style="display:inline-block;background:#0f3460;padding:2px 10px;border-radius:20px;font-size:0.7rem;margin-left:6px;color:#0ea5e9;">⏱️ 10 min</span>
+                            </div>
+                            <div class="total-time-pip" id="pipTotalTimeDisplay">Tiempo total: <strong>—</strong></div>
+                        </div>
+                        <button class="btn-pip-close" id="pipCloseBtn">✕</button>
+                    `;
+                    pipWindow.document.body.innerHTML = cardHTML;
+
+                    // Cerrar desde dentro del PiP
+                    pipWindow.document.getElementById('pipCloseBtn').addEventListener('click', () => {
+                        pipWindow.close();
+                    });
+
+                    // Actualizar datos del PiP
+                    function actualizarPiP() {
+                        if (!pipWindow || pipWindow.closed) return;
+                        const pipRamal = pipWindow.document.getElementById('pipRamal');
+                        const pipLinea = pipWindow.document.getElementById('pipLinea');
+                        const pipTimeDisplay = pipWindow.document.getElementById('pipTimeDisplay');
+                        const pipPhaseIndicator = pipWindow.document.getElementById('pipPhaseIndicator');
+                        const pipRouteTimeBadge = pipWindow.document.getElementById('pipRouteTimeBadge');
+                        const pipTotalTimeDisplay = pipWindow.document.getElementById('pipTotalTimeDisplay');
+
+                        if (pipRamal) pipRamal.textContent = ramal || '—';
+                        if (pipLinea) pipLinea.textContent = linea || '—';
+                        if (pipRouteTimeBadge) pipRouteTimeBadge.textContent = `⏱️ ${Math.round(totalRouteSeconds / 60)} min`;
+
+                        if (pipTimeDisplay) {
+                            pipTimeDisplay.textContent = timeDisplay.textContent;
+                            pipTimeDisplay.className = 'time-display-pip ' + (timeDisplay.className.replace('time-display ', '') || 'paused');
+                        }
+                        if (pipPhaseIndicator) {
+                            pipPhaseIndicator.textContent = phaseIndicator.textContent;
+                            pipPhaseIndicator.className = 'phase-indicator-pip ' + phaseIndicator.className.replace('phase-indicator ', '').replace('phase-ida', 'phase-ida-pip').replace('phase-espera', 'phase-espera-pip').replace('phase-vuelta', 'phase-vuelta-pip');
+                        }
+                        if (pipTotalTimeDisplay) {
+                            pipTotalTimeDisplay.innerHTML = totalTimeDisplay.innerHTML;
+                        }
+                    }
+
+                    // Sincronizar cada 200ms
+                    const pipInterval = setInterval(actualizarPiP, 200);
+                    actualizarPiP();
+
+                    pipWindow.addEventListener('pagehide', () => {
+                        clearInterval(pipInterval);
+                        pipWindow = null;
+                    });
+
+                } catch (e) {
+                    console.warn('Error al abrir PiP:', e);
+                    alert('⚠️ No se pudo abrir la ventana flotante. Asegúrese de que su navegador lo soporte.');
+                }
+            }
+
+            // ==================== FIN PIP ====================
+
             function playSound(file) {
                 try {
-                    const audio = new Audio('../Assets/' + file);
+                    const audio = new Audio('./' + file);
                     audio.play().catch(e => console.warn('Audio no reproducido:', e));
                 } catch(e) {}
             }
@@ -817,9 +1063,32 @@
                     const totalElapsed = idaTime + currentElapsed;
                     remaining = totalRouteSeconds - totalElapsed;
                     displayTime = remaining > 0 ? -remaining : Math.abs(remaining);
+
+                    // Notificación cuando se completa el tiempo de IDA
+                    if (remaining <= 0 && !notificacionIdaEnviada) {
+                        notificacionIdaEnviada = true;
+                        const minutosRamal = Math.round(totalRouteSeconds / 60);
+                        enviarNotificacion(
+                            '⏱️ Tiempo de IDA completado',
+                            `Ya vas ${minutosRamal} minutos en la IDA...`
+                        );
+                        reproducirNotificacionSonido();
+                    }
                 } else if (phase === 'espera') {
                     displayTime = esperaTime + currentElapsed;
                     cssClass = 'going';
+
+                    // Notificación cuando termina la espera
+                    if (esperaDuration > 0 && currentElapsed >= esperaDuration && !notificacionEsperaEnviada) {
+                        notificacionEsperaEnviada = true;
+                        const minutosEspera = Math.round(esperaDuration / 60);
+                        enviarNotificacion(
+                            '⏳ Tiempo de espera completado',
+                            `Ya tienes que empezar la vuelta. Ya pasaron ${minutosEspera} minutos...`
+                        );
+                        reproducirNotificacionSonido();
+                    }
+
                     if (esperaDuration > 0 && currentElapsed >= esperaDuration && !esperaAutomaticaDisparada) {
                         esperaAutomaticaDisparada = true;
                         iniciarVuelta();
@@ -829,6 +1098,17 @@
                     const totalElapsed = vueltaTime + currentElapsed;
                     remaining = totalRouteSeconds - totalElapsed;
                     displayTime = remaining > 0 ? -remaining : Math.abs(remaining);
+
+                    // Notificación cuando se completa el tiempo de VUELTA
+                    if (remaining <= 0 && !notificacionVueltaEnviada) {
+                        notificacionVueltaEnviada = true;
+                        const minutosRamal = Math.round(totalRouteSeconds / 60);
+                        enviarNotificacion(
+                            '⏱️ Tiempo de VUELTA completado',
+                            `Ya vas ${minutosRamal} minutos en la VUELTA...`
+                        );
+                        reproducirNotificacionSonido();
+                    }
                 }
 
                 if (phase === 'ida' || phase === 'vuelta') {
@@ -955,6 +1235,9 @@
                     esperaConfirmada = false;
                     idaFinalizada = false;
                     esperaAutomaticaDisparada = false;
+                    notificacionIdaEnviada = false;
+                    notificacionVueltaEnviada = false;
+                    notificacionEsperaEnviada = false;
                     if (localStorage.getItem('valores') === 'contador-si') {
                         ingSrvInput.value = '';
                         sdaTermIInput.value = '';
@@ -1012,6 +1295,7 @@
                 esperaDuration = minutos * 60;
                 esperaConfirmada = true;
                 esperaAutomaticaDisparada = false;
+                notificacionEsperaEnviada = false;
                 if (localStorage.getItem('valores') === 'contador-si') {
                     recesoInput.value = minutos;
                 }
@@ -1585,6 +1869,9 @@ VUELTA:
             });
 
             window.addEventListener('load', () => {
+                // Solicitar permisos de notificaciones
+                solicitarPermisoNotificaciones();
+
                 poblarEmpresas();
                 const empGuardada = localStorage.getItem('formato_empresa');
                 if (empGuardada && EMPRESAS[empGuardada]) {
@@ -1617,6 +1904,12 @@ VUELTA:
                 setInterval(actualizarReloj, 1000);
                 setTimeout(playStartSound, 500);
                 inicializarAutocompletado();
+
+                // Verificar soporte de PiP
+                if (!('documentPictureInPicture' in window)) {
+                    document.getElementById('btnFloat').style.opacity = '0.4';
+                    document.getElementById('btnFloat').title = 'Ventana flotante no soportada en este navegador';
+                }
             });
 
             document.querySelectorAll('input, select').forEach(el => {
@@ -1644,6 +1937,7 @@ VUELTA:
             window.mostrarToast = mostrarToast;
             window.abrirModalFormato = abrirModalFormato;
             window.confirmarFormato = confirmarFormato;
+            window.togglePiP = togglePiP;
 
             document.getElementById('esperaModal').addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
