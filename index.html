@@ -76,14 +76,6 @@
             gap: 8px;
         }
 
-        .navbar-time {
-            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--accent);
-            letter-spacing: 1px;
-        }
-
         .navbar-btn {
             width: 42px;
             height: 42px;
@@ -98,6 +90,8 @@
             transition: all 0.3s ease;
             font-size: 1.2rem;
             flex-shrink: 0;
+            overflow: hidden;
+            padding: 0;
         }
 
         .navbar-btn:hover {
@@ -130,6 +124,24 @@
             box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
         }
 
+        .navbar-btn.whatsapp {
+            background: #25D366;
+            border-color: #25D366;
+        }
+
+        .navbar-btn.whatsapp:hover {
+            background: #1ebe5b;
+            border-color: #1ebe5b;
+            box-shadow: 0 0 20px rgba(37, 211, 102, 0.4);
+        }
+
+        .navbar-btn.whatsapp img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
         .navbar-btn svg {
             width: 22px;
             height: 22px;
@@ -138,6 +150,10 @@
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
+        }
+
+        .navbar-spacer {
+            flex: 1;
         }
 
         .counter-header {
@@ -294,6 +310,15 @@
             border-color: var(--accent);
         }
 
+        .btn-whatsapp {
+            background: #25D366;
+            color: #fff;
+        }
+        .btn-whatsapp:hover {
+            background: #1ebe5b;
+            box-shadow: 0 0 20px rgba(37, 211, 102, 0.4);
+        }
+
         .btn-copy {
             background: var(--secondary);
             color: #fff;
@@ -434,6 +459,13 @@
             color: var(--text);
         }
 
+        .modal h2 {
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            color: var(--accent);
+            text-align: center;
+        }
+
         .modal p {
             color: var(--text-muted);
             margin-bottom: 16px;
@@ -443,6 +475,12 @@
 
         .modal .btn-group {
             margin-top: 16px;
+            flex-direction: column;
+        }
+
+        .modal .btn-group .btn {
+            width: 100%;
+            min-width: auto;
         }
 
         .toast {
@@ -495,9 +533,6 @@
                 font-size: 0.75rem;
                 padding: 8px 10px;
             }
-            .navbar-time {
-                font-size: 0.9rem;
-            }
             .navbar-btn {
                 width: 36px;
                 height: 36px;
@@ -523,12 +558,15 @@
                     <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
                 </svg>
             </button>
-            <div class="navbar-time" id="clockDisplay">--:--</div>
+            <div class="navbar-spacer"></div>
             <button class="navbar-btn green" id="btnFloat" onclick="togglePiP()" aria-label="Ventana flotante" title="Ventana flotante">
                 <svg viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <rect x="10" y="10" width="8" height="6" rx="1" ry="1"/>
                 </svg>
+            </button>
+            <button class="navbar-btn whatsapp" onclick="abrirModalCredits()" aria-label="Créditos">
+                <img src="./whatsapp.png" alt="WhatsApp">
             </button>
             <button class="navbar-btn" onclick="abrirModalPreferencias()" aria-label="Preferencias">
                 <svg viewBox="0 0 24 24">
@@ -713,6 +751,19 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="creditsOverlay">
+        <div class="modal">
+            <h2>Creador</h2>
+            <div class="btn-group">
+                <button class="btn btn-whatsapp" onclick="window.open('https://wa.me/+542215989210', '_blank')">📱 Número del Creador</button>
+                <button class="btn btn-whatsapp" onclick="window.open('https://whatsapp.com/channel/0029Vb8YtlnI1rcrl09nja0B', '_blank')">📢 Canal del Creador</button>
+            </div>
+            <div class="btn-group" style="margin-top:12px;">
+                <button class="btn btn-outline" onclick="cerrarModalCredits()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast">✅ Copiado al portapapeles</div>
 
     <script>
@@ -770,7 +821,6 @@
             const resultPanel = document.getElementById('resultPanel');
             const btnCopy = document.getElementById('btnCopy');
             const toast = document.getElementById('toast');
-            const clockDisplay = document.getElementById('clockDisplay');
 
             const ingSrvInput = document.getElementById('ing-srv');
             const sdaTermIInput = document.getElementById('sda-term-i');
@@ -842,7 +892,6 @@
                         height: 300,
                     });
 
-                    // Copiar estilos
                     const style = document.createElement('style');
                     style.textContent = `
                         body {
@@ -957,12 +1006,10 @@
                     `;
                     pipWindow.document.body.innerHTML = cardHTML;
 
-                    // Cerrar desde dentro del PiP
                     pipWindow.document.getElementById('pipCloseBtn').addEventListener('click', () => {
                         pipWindow.close();
                     });
 
-                    // Actualizar datos del PiP
                     function actualizarPiP() {
                         if (!pipWindow || pipWindow.closed) return;
                         const pipRamal = pipWindow.document.getElementById('pipRamal');
@@ -989,7 +1036,6 @@
                         }
                     }
 
-                    // Sincronizar cada 200ms
                     const pipInterval = setInterval(actualizarPiP, 200);
                     actualizarPiP();
 
@@ -1064,7 +1110,6 @@
                     remaining = totalRouteSeconds - totalElapsed;
                     displayTime = remaining > 0 ? -remaining : Math.abs(remaining);
 
-                    // Notificación cuando se completa el tiempo de IDA
                     if (remaining <= 0 && !notificacionIdaEnviada) {
                         notificacionIdaEnviada = true;
                         const minutosRamal = Math.round(totalRouteSeconds / 60);
@@ -1078,7 +1123,6 @@
                     displayTime = esperaTime + currentElapsed;
                     cssClass = 'going';
 
-                    // Notificación cuando termina la espera
                     if (esperaDuration > 0 && currentElapsed >= esperaDuration && !notificacionEsperaEnviada) {
                         notificacionEsperaEnviada = true;
                         const minutosEspera = Math.round(esperaDuration / 60);
@@ -1099,7 +1143,6 @@
                     remaining = totalRouteSeconds - totalElapsed;
                     displayTime = remaining > 0 ? -remaining : Math.abs(remaining);
 
-                    // Notificación cuando se completa el tiempo de VUELTA
                     if (remaining <= 0 && !notificacionVueltaEnviada) {
                         notificacionVueltaEnviada = true;
                         const minutosRamal = Math.round(totalRouteSeconds / 60);
@@ -1385,6 +1428,21 @@
                 if (e.target === e.currentTarget) cerrarPreferencias();
             });
 
+            // ==================== CREDITS MODAL ====================
+            function abrirModalCredits() {
+                document.getElementById('creditsOverlay').classList.add('active');
+            }
+
+            function cerrarModalCredits() {
+                document.getElementById('creditsOverlay').classList.remove('active');
+            }
+
+            document.getElementById('creditsOverlay').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) cerrarModalCredits();
+            });
+
+            // ==================== FIN CREDITS MODAL ====================
+
             function saveData(value) {
                 try {
                     localStorage.setItem('valores', value);
@@ -1464,13 +1522,6 @@
                 const mm = String(now.getMinutes()).padStart(2, '0');
                 document.getElementById(inputId).value = hh + ':' + mm;
                 guardarInput(inputId);
-            }
-
-            function actualizarReloj() {
-                const ahora = new Date();
-                const hh = String(ahora.getHours()).padStart(2, '0');
-                const mm = String(ahora.getMinutes()).padStart(2, '0');
-                clockDisplay.textContent = hh + ':' + mm;
             }
 
             function inicializarAutocompletado() {
@@ -1869,7 +1920,6 @@ VUELTA:
             });
 
             window.addEventListener('load', () => {
-                // Solicitar permisos de notificaciones
                 solicitarPermisoNotificaciones();
 
                 poblarEmpresas();
@@ -1900,12 +1950,9 @@ VUELTA:
                 }
                 updateMainButton();
                 updateDisplay();
-                actualizarReloj();
-                setInterval(actualizarReloj, 1000);
                 setTimeout(playStartSound, 500);
                 inicializarAutocompletado();
 
-                // Verificar soporte de PiP
                 if (!('documentPictureInPicture' in window)) {
                     document.getElementById('btnFloat').style.opacity = '0.4';
                     document.getElementById('btnFloat').title = 'Ventana flotante no soportada en este navegador';
@@ -1938,6 +1985,8 @@ VUELTA:
             window.abrirModalFormato = abrirModalFormato;
             window.confirmarFormato = confirmarFormato;
             window.togglePiP = togglePiP;
+            window.abrirModalCredits = abrirModalCredits;
+            window.cerrarModalCredits = cerrarModalCredits;
 
             document.getElementById('esperaModal').addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
