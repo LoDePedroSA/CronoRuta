@@ -1,14 +1,14 @@
 {
-  "short_name": "CronoRutaPro",
+  "short_name": "CronoRuta Pro",
   "name": "CronoRuta Pro",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "logo.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "icon-512.png",
+      "src": "logo.png",
       "type": "image/png",
       "sizes": "512x512"
     }
