@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="./icon-512.png" type="image/x-icon">
     <title>CronoRuta Pro</title>
+
+    <!-- Vinculación del manifiesto y tema del navegador -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CronoRuta Pro">
+    <link rel="apple-touch-icon" href="./icon-512.png">
+
     <style>
         :root {
             --bg: #1a1a2e;
@@ -2000,6 +2009,15 @@ VUELTA:
             mainState = 1;
             updateMainButton();
         })();
+
+        // ==================== REGISTRO DEL SERVICE WORKER ====================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado con éxito', reg))
+                    .catch(err => console.error('Error al registrar Service Worker', err));
+            });
+        }
     </script>
 </body>
 </html>
