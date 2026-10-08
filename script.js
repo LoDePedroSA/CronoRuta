@@ -28,7 +28,42 @@
         casanova: { nombre: 'Transporte Automotor Casanova S.A.', lineas: ['208', '11'], ramales: ['Geli - U. de Lomas - San Justo - Est. Isidro Casanova'] },
         moqsa: { nombre: 'Micro Omnibus Quilmes S.A.', lineas: ['159', '219', '300', '584', '603', '619'], ramales: ['Correo - Berazategui'] },
         laUnionVicenteLopez: { nombre: 'La Union de Vicente Lopez', lineas: ['229'], ramales: ['X220'] },
-        chubut: { nombre: 'Empresas C. R. Chubut', lineas: ['229'], ramales: ['A'] }
+        chubut: { nombre: 'Empresas C. R. Chubut', lineas: ['229'], ramales: ['A'] },
+        mogsma: {
+            nombre: 'M.O.G.S.M. S.A.',
+            lineas: ['707'],
+            ramales: ['Suárez x Méndez']
+        },
+        tum: {
+            nombre: 'Transportes Unidos de Merlo S.A.',
+            lineas: ['238', '297', '500'],
+            ramales: [
+                'Sta Rosa x Sere - Haedo',
+                'Vergara - Haedo',
+                'La Teja  X Libertad - Est Moron',
+                'La Teja X Libertad - Distrito Militar',
+                'La Teja X Libertad - Est Castelar',
+                'Est 20 De Junio X Pontevedra - Est Merlo',
+                'B. Campanillas X B. Rivadavia - Est. Padua',
+                'Pontevedra X V. Magdalena - Est. Padua',
+                'Pericon - Est. Padua',
+                'San Lorenzo - Est. Padua',
+                'El Ceibo - Est. Padua',
+                'Petracci - Est. Padua',
+                'La Teja - Est. Padua',
+                'M. Gómez X B. Nuevo - Est. Merlo',
+                'Helvecia X Padua - Est. Merlo',
+                'B. El Mirador X V. Magdalena - Est. Merlo',
+                'Lasalle X Vivero - Est. Merlo',
+                'Lasalle X Vivero - Las Torres Est. Merlo',
+                'Santa Isabel 2 X Heredia - Est. Merlo ',
+                'EL Ceibo - Est. Merlo',
+                'El Cortijo X B. El Mirador - Est. Merlo',
+                'Luchetti X B. Los Vascos - Est. Merlo',
+                'B. Matera X B. Rivadavia - Est. Merlo',
+                'La Teja - Est. Merlo'
+            ]
+        }
     };
 
     const FORMATO_CAMPOS = {
@@ -38,7 +73,9 @@
         casanova: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','adelanto_atraso_ida','adelanto_atraso_vuelta'],
         moqsa: ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'],
         laUnionVicenteLopez: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion'],
-        chubut: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion']
+        chubut: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion'],
+        mogsma: ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v'],
+        tum: ['name','legajo','int','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion']
     };
 
     const TODOS_CAMPOS = ['name','legajo','int','modelo','ing-srv','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'];
@@ -996,6 +1033,7 @@
         if (formato === 'casanova') requeridosBase.push('receso');
         if (formato === 'laUnionVicenteLopez') requeridosBase.push('receso');
         if (formato === 'chubut') requeridosBase.push('receso');
+        if (formato === 'tum') requeridosBase.push('legajo','receso');
 
         const faltantes = requeridosBase.filter(id => {
             const el = document.getElementById(id);
@@ -1191,6 +1229,63 @@ VUELTA:
 *INCONVENIENTES:* 
 *SATISFACCIÓN:* ${satisfaccion || '_________________'}
 *ESTADO DEL COCHE:*
+`.trim();
+        } else if (formato === 'mogsma') {
+            plantilla = `
+*PLANILLAS M.O.G.S.M 🚍*
+
+*Nombre:* ${name}
+*Interno:* ${interno}
+*Linea:* ${linea || '—'}
+*Ramal: ${ramal || '—'}
+
+
+*HORARIOS 🕒*
+
+*IDA
+*Salida:* ${sdaTermI}
+*Llegada:* ${llgTermI}
+
+*Vuelta:1
+
+*CONTEO DE PLANILLAS ECHAS*
+
+*Planillas totales:*1
+*Planillas semanales:*0
+*Planillas mensuales:*0
+`.trim();
+        } else if (formato === 'tum') {
+            const fechaHoy = new Date();
+            const dia = String(fechaHoy.getDate()).padStart(2, '0');
+            const mes = String(fechaHoy.getMonth() + 1).padStart(2, '0');
+            const anio = fechaHoy.getFullYear();
+            const fechaFormateada = `${dia}/${mes}/${anio}`;
+            const esperaTexto = recesoValor ? `${recesoValor} minutos` : '—';
+            plantilla = `
+*PLANILLA TRANSPORTES UNIDOS DE MERLO S.A*
+
+*CHOFER*: ${name}
+*LEJAGO*: ${legajo || '—'}
+*INTERNO*: ${interno}
+*RAMAL*: ${ramal || '—'}
+*LINEA*: ${linea || '—'}
+*FECHA*: ${fechaFormateada}
+
+*RECORRIDO*
+
+*IDA*
+
+*HORARIO SALIDA*: ${sdaTermI}
+*HORARIO LLEGADA*: ${llgTermI}
+
+*ESPERA*:  ${esperaTexto}
+
+*VUELTA* 
+
+*HORARIO DE SALIDA*: ${sdaTermV}
+*HORARIO DE LLEGADA*: ${llgTermV}
+
+*SATISFACCIÓN DE PASAJEROS/%*: ${satisfaccion || '_________________'}
 `.trim();
         }
 
