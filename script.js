@@ -75,20 +75,29 @@
     function enviarNotificacion(titulo, cuerpo) {
         if (!('Notification' in window)) return;
         if (Notification.permission !== 'granted') return;
-        try {
-            const notif = new Notification(titulo, {
-                body: cuerpo,
-                icon: './logo.png',
-                badge: './logo.png',
-                silent: false,
-                requireInteraction: true
+    
+    
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(function(registration) {
+                registration.showNotification(titulo, {
+                    body: cuerpo,
+                    icon: './logo.png',
+                    badge: './logo.png',
+                    vibrate: [200, 100, 200],
+                    requireInteraction: true,
+                    data: {}
+                });
+            }).catch(function(error) {
+                console.warn('Error al enviar notificación vía Service Worker:', error);
+                try {
+                    new Notification(titulo, { body: cuerpo, icon: './logo.png' });
+                } catch(e) {}
             });
-            notif.onclick = function() {
-                window.focus();
-                notif.close();
-            };
-            setTimeout(() => notif.close(), 15000);
-        } catch (e) {}
+        } else {
+            try {
+                new Notification(titulo, { body: cuerpo, icon: './logo.png' });
+            } catch(e) {}
+        }
     }
 
     function reproducirNotificacionSonido() {
