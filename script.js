@@ -27,7 +27,7 @@
         condor: { nombre: 'Condor SRL', lineas: ['L4'], ramales: ['Liniers Directo'] },
         casanova: { nombre: 'Transporte Automotor Casanova S.A.', lineas: ['208', '11'], ramales: ['Geli - U. de Lomas - San Justo - Est. Isidro Casanova'] },
         moqsa: { nombre: 'Micro Omnibus Quilmes S.A.', lineas: ['159', '219', '300', '584', '603', '619'], ramales: ['Correo - Berazategui'] },
-        laUnionVicenteLopez: { nombre: 'La Union de Vicente Lopez', lineas: ['229'], ramales: ['X220'] },
+        laUnionVicenteLopez: { nombre: 'La Union de Vicente Lopez', lineas: ['229'], ramales: ['Vicente Lopez X Areopueto - Retiro'] },
         chubut: { nombre: 'Empresas C. R. Chubut', lineas: ['229'], ramales: ['A'] },
         mogsma: {
             nombre: 'M.O.G.S.M. S.A.',
