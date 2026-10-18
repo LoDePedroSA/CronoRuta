@@ -104,6 +104,9 @@
       <strong>Fotos de referencia (URLs separadas por coma y espacio):</strong>
       <textarea id="np-imagenes-referencia" rows="3" placeholder="https://ejemplo.com/img1.png, https://ejemplo.com/img2.png"></textarea>
       <hr class="mini">
+      <strong>Fotos del pedido terminado (URLs separadas por coma y espacio):</strong>
+      <textarea id="np-imagenes-terminado" rows="3" placeholder="https://ejemplo.com/final1.png, https://ejemplo.com/final2.png"></textarea>
+      <hr class="mini">
       <button class="primary" onclick="saveNuevoPedido()">Guardar Pedido</button>
     </div>
   </section>
@@ -150,6 +153,9 @@
       <strong>Fotos de referencia (URLs separadas por coma y espacio):</strong>
       <textarea id="mp-imagenes-referencia" rows="3" placeholder="https://ejemplo.com/img1.png, https://ejemplo.com/img2.png"></textarea>
       <hr class="mini">
+      <strong>Fotos del pedido terminado (URLs separadas por coma y espacio):</strong>
+      <textarea id="mp-imagenes-terminado" rows="3" placeholder="https://ejemplo.com/final1.png, https://ejemplo.com/final2.png"></textarea>
+      <hr class="mini">
       <button class="primary" onclick="updatePedido()">Actualizar Pedido</button>
     </div>
   </section>
@@ -181,11 +187,8 @@
     </div>
   </div>
 
-  <!-- Firebase v8 (compat) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-  <!-- Script principal -->
   <script src="script.js"></script>
 </body>
 </html>

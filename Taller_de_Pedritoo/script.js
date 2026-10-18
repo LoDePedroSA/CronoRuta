@@ -38,7 +38,7 @@ function updateUIBasedOnRole() {
 }
 
 /* ============================================================
-   NAVEGACIÓN DE PESTAÑAS (sin barra de navegación)
+   NAVEGACIÓN DE PESTAÑAS
 ============================================================ */
 function switchTab(tabId) {
   document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
@@ -182,7 +182,6 @@ function addCosaInput(containerId, className, value) {
    COPIAR AL PORTAPAPELES
 ============================================================ */
 async function copyToClipboard(text) {
-  // Método moderno (requiere HTTPS o localhost)
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
@@ -192,7 +191,6 @@ async function copyToClipboard(text) {
     console.warn("Clipboard API falló, usando fallback:", e);
   }
 
-  // Fallback clásico (funciona también en HTTP sin SSL)
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -264,7 +262,8 @@ async function saveNuevoPedido() {
       "tiempo-preparacion": 0,
       registro: new Date().toISOString(),
       imagenes: "",
-      "imagenes-referencia": document.getElementById("np-imagenes-referencia").value
+      "imagenes-referencia": document.getElementById("np-imagenes-referencia").value,
+      "imagenes-terminado": document.getElementById("np-imagenes-terminado").value
     };
 
     await db.collection("ticket").doc(nut).set(data);
@@ -279,7 +278,6 @@ async function saveNuevoPedido() {
 
     const copiado = await copyToClipboard(mensaje);
 
-    // --- Feedback al usuario ---
     if (copiado) {
       alert(
         "Pedido creado correctamente.\n\n" +
@@ -287,7 +285,6 @@ async function saveNuevoPedido() {
         "✅ Mensaje copiado al portapapeles.\nYa podés pegarlo en WhatsApp."
       );
     } else {
-      // Si el navegador bloqueó el portapapeles, mostramos el mensaje en consola
       console.log("=== MENSAJE PARA EL CLIENTE (copiar manualmente) ===");
       console.log(mensaje);
       alert(
@@ -298,10 +295,9 @@ async function saveNuevoPedido() {
       );
     }
 
-    // --- Limpiar formulario ---
     ["np-personal", "np-titular", "np-estado", "np-precio", "np-descuento",
       "np-precio-total", "np-estado-pago", "np-mod", "np-notas",
-      "np-imagenes-referencia"].forEach(id => {
+      "np-imagenes-referencia", "np-imagenes-terminado"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -338,6 +334,7 @@ function loadModPedido(nut, data) {
   document.getElementById("mp-mod").value = data.mod || "";
   document.getElementById("mp-notas").value = data.notas || "";
   document.getElementById("mp-imagenes-referencia").value = data["imagenes-referencia"] || "";
+  document.getElementById("mp-imagenes-terminado").value = data["imagenes-terminado"] || "";
 
   const container = document.getElementById("mp-cosas");
   container.innerHTML = "";
@@ -373,7 +370,8 @@ async function updatePedido() {
       "estado-pago": document.getElementById("mp-estado-pago").value,
       mod: document.getElementById("mp-mod").value,
       notas: document.getElementById("mp-notas").value,
-      "imagenes-referencia": document.getElementById("mp-imagenes-referencia").value
+      "imagenes-referencia": document.getElementById("mp-imagenes-referencia").value,
+      "imagenes-terminado": document.getElementById("mp-imagenes-terminado").value
     });
 
     alert("Pedido actualizado correctamente.");
@@ -420,8 +418,16 @@ function escapeHtml(s) {
     .replace(/'/g, "&#39;");
 }
 
+function parseImageUrls(raw, emptyHtml) {
+  const urls = (raw || "").split(",").map(s => s.trim()).filter(s => s);
+  const valid = urls.filter(u => /^https?:\/\//i.test(u));
+  return valid.length
+    ? valid.map(src => '<img class="imagen-pedido" src="' + escapeHtml(src) + '" alt="Imagen del pedido">').join("")
+    : emptyHtml;
+}
+
 /* ============================================================
-   VISTA DEL PEDIDO (pestaña "pedido")
+   VISTA DEL PEDIDO
 ============================================================ */
 async function loadPedidoTab(nut) {
   try {
@@ -450,6 +456,8 @@ function renderPedido(data) {
   else if (estado === "En proceso") estadoColor = "orange";
   else if (estado === "Solamente tomado") estadoColor = "red";
 
+  const isTerminado = estado === "Terminado";
+
   const estadoPago = data["estado-pago"] || "";
   let estadoPagoColor = "inherit";
   if (estadoPago === "Pagado") estadoPagoColor = "green";
@@ -460,22 +468,39 @@ function renderPedido(data) {
     ? cosas.map((c, i) => "<li>" + (i + 1) + "- " + escapeHtml(c) + "</li>").join("")
     : "<li>-</li>";
 
-  const imagenes = (data.imagenes || "").split(",").map(s => s.trim()).filter(s => s);
-  const validImgs = imagenes.filter(i => /^https?:\/\//i.test(i));
-  const imagenesHtml = validImgs.length
-    ? validImgs.map(src => '<img class="imagen-pedido" src="' + escapeHtml(src) + '" alt="Imagen del pedido">').join("")
-    : '<strong style="color: red;">No se han adjuntado imágenes...</strong>';
+  const imagenesHtml = parseImageUrls(
+    data.imagenes,
+    '<strong style="color: red;">No se han adjuntado imágenes...</strong>'
+  );
 
-  const imagenesRef = (data["imagenes-referencia"] || "").split(",").map(s => s.trim()).filter(s => s);
-  const validRefs = imagenesRef.filter(i => /^https?:\/\//i.test(i));
-  const imagenesRefHtml = validRefs.length
-    ? validRefs.map(src => '<img class="imagen-pedido" src="' + escapeHtml(src) + '" alt="Foto de referencia">').join("")
-    : '<strong style="color: red;">No se han adjuntado imágenes de referencia...</strong>';
+  const imagenesRefHtml = parseImageUrls(
+    data["imagenes-referencia"],
+    '<strong style="color: red;">No se han adjuntado imágenes de referencia...</strong>'
+  );
+
+  const imagenesTermHtml = parseImageUrls(
+    data["imagenes-terminado"],
+    '<em style="color: #888;">Aún no se han adjuntado fotos del pedido terminado.</em>'
+  );
+
+  const nutEscaped = encodeURIComponent(data.NUT || "");
+
+  // Banner celebratorio: SOLO cuando está terminado
+  const bannerTerminadoHtml = isTerminado ? (
+    '<div class="banner-terminado">' +
+      '<h3>🎉 ¡Tu pedido está terminado! 🎉</h3>' +
+      '<p>Podés ver todos los detalles finales en la página especial del pedido terminado.</p>' +
+      '<a href="pedido-terminado.html?=' + nutEscaped + '" class="btn-terminado">' +
+        'Ver página del pedido terminado →' +
+      '</a>' +
+    '</div>'
+  ) : '';
 
   document.getElementById("pedido-content").innerHTML =
     '<h2>Tu Pedido</h2>' +
+    bannerTerminadoHtml +
     '<div class="recuadro" style="text-align:center;">' +
-      '<p style="font-size:2.5em;color:#007bff;margin:0;">' +
+      '<p style="font-size:2.5em;color:#007bff;margin:0;font-weight:800;">' +
         escapeHtml(String(data["tiempo-preparacion"] != null ? data["tiempo-preparacion"] : "-")) +
       '</p>' +
     '</div>' +
@@ -510,7 +535,10 @@ function renderPedido(data) {
     '<div class="recuadro">' + imagenesHtml + '</div>' +
     '<hr class="mini">' +
     '<p><strong>Fotos de referencia:</strong></p>' +
-    '<div class="recuadro">' + imagenesRefHtml + '</div>';
+    '<div class="recuadro">' + imagenesRefHtml + '</div>' +
+    '<hr class="mini">' +
+    '<p><strong>Fotos del pedido terminado:</strong></p>' +
+    '<div class="recuadro">' + imagenesTermHtml + '</div>';
 }
 
 /* ============================================================
@@ -524,7 +552,6 @@ function showWelcome() {
   textEl.innerHTML = "";
   let charIndex = 0;
 
-  // Cada palabra va en un wrapper indivisible
   text.split(" ").forEach((word, wordIdx, arr) => {
     const wordSpan = document.createElement("span");
     wordSpan.className = "welcome-word";
@@ -540,14 +567,12 @@ function showWelcome() {
 
     textEl.appendChild(wordSpan);
 
-    // Espacio normal entre palabras (permite salto de línea)
     if (wordIdx < arr.length - 1) {
       textEl.appendChild(document.createTextNode(" "));
       charIndex++;
     }
   });
 
-  // Cierre automático: última letra + animación + pausa
   const totalDelay = (charIndex * 30) + 550 + 1800;
   setTimeout(() => dismissWelcome(), totalDelay);
 }
@@ -563,7 +588,6 @@ function dismissWelcome() {
    INICIALIZACIÓN
 ============================================================ */
 function init() {
-  // Bienvenida (solo primera visita)
   const overlay = document.getElementById("welcome-overlay");
   if (localStorage.getItem("welcome_shown") === "true") {
     overlay.style.display = "none";
@@ -572,14 +596,11 @@ function init() {
     showWelcome();
   }
 
-  // Rol
   updateUIBasedOnRole();
 
-  // Campos dinámicos iniciales
   addCosaInput("np-cosas", "np-cosa");
   addCosaInput("mp-cosas", "mp-cosa");
 
-  // Parámetro ?=NUT en la URL
   const search = window.location.search;
   let nutParam = "";
   if (search.startsWith("?=")) {
