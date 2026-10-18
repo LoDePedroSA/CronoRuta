@@ -81,7 +81,12 @@
       <button class="primary" onclick="addCosaInput('np-cosas','np-cosa')">+ Agregar detalle</button>
       <hr class="mini">
       <strong>Estado del pedido:</strong>
-      <input type="text" id="np-estado" placeholder="Solamente tomado / En proceso / Terminado">
+      <select id="np-estado">
+        <option value="">-- Seleccionar --</option>
+        <option value="Solamente tomado">Solamente tomado</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Terminado">Terminado</option>
+      </select>
       <hr class="mini">
       <strong>Precio del Pedido:</strong>
       <input type="number" id="np-precio" step="0.01">
@@ -93,7 +98,11 @@
       <input type="number" id="np-precio-total" readonly>
       <hr class="mini">
       <strong>Estado del pago:</strong>
-      <input type="text" id="np-estado-pago" placeholder="Pagado / No pagado">
+      <select id="np-estado-pago">
+        <option value="">-- Seleccionar --</option>
+        <option value="Pagado">Pagado</option>
+        <option value="No pagado">No pagado</option>
+      </select>
       <hr class="mini">
       <strong>Modelo del Pedido:</strong>
       <input type="text" id="np-mod">
@@ -115,6 +124,15 @@
   <section id="mod-pedido-pag" class="tab-section admin-only" style="display:none;">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Modificar Pedido</h2>
+
+    <!-- Contador de tiempo -->
+    <div class="recuadro timer-rec">
+      <h3>Tiempo de preparación</h3>
+      <div class="timer-display" id="timer-display">00:00:00</div>
+      <button class="primary" id="timer-toggle-btn" onclick="toggleTimer()">▶ Activar contador</button>
+      <p class="timer-hint">El tiempo se guarda automáticamente cada 15 segundos mientras el contador está activo.</p>
+    </div>
+
     <div class="recuadro">
       <strong>NUT del Pedido:</strong>
       <input type="text" id="mp-nut" readonly>
@@ -130,7 +148,12 @@
       <button class="primary" onclick="addCosaInput('mp-cosas','mp-cosa')">+ Agregar detalle</button>
       <hr class="mini">
       <strong>Estado del pedido:</strong>
-      <input type="text" id="mp-estado">
+      <select id="mp-estado">
+        <option value="">-- Seleccionar --</option>
+        <option value="Solamente tomado">Solamente tomado</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Terminado">Terminado</option>
+      </select>
       <hr class="mini">
       <strong>Precio del Pedido:</strong>
       <input type="number" id="mp-precio" step="0.01">
@@ -142,7 +165,11 @@
       <input type="number" id="mp-precio-total" readonly>
       <hr class="mini">
       <strong>Estado del pago:</strong>
-      <input type="text" id="mp-estado-pago">
+      <select id="mp-estado-pago">
+        <option value="">-- Seleccionar --</option>
+        <option value="Pagado">Pagado</option>
+        <option value="No pagado">No pagado</option>
+      </select>
       <hr class="mini">
       <strong>Modelo del Pedido:</strong>
       <input type="text" id="mp-mod">

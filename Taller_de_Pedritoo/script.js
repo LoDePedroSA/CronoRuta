@@ -140,6 +140,7 @@ async function verificarNUT(origen) {
     } else if (origen === "mod") {
       loadModPedido(nut, doc.data());
       switchTab("mod-pedido-pag");
+      document.getElementById("nut-mod").value = "";
     } else if (origen === "eliminar") {
       if (confirm("¿Seguro que querés eliminar el pedido " + nut + "?")) {
         await db.collection("ticket").doc(nut).delete();
@@ -176,6 +177,23 @@ function addCosaInput(containerId, className, value) {
   row.appendChild(input);
   row.appendChild(btn);
   container.appendChild(row);
+}
+
+/* ============================================================
+   HELPER: SELECT (para asegurar que el valor guardado aparezca)
+============================================================ */
+function setSelectValue(selectId, value) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const val = value || "";
+  const exists = Array.from(sel.options).some(o => o.value === val);
+  if (!exists && val) {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = val;
+    sel.appendChild(opt);
+  }
+  sel.value = val;
 }
 
 /* ============================================================
@@ -295,6 +313,7 @@ async function saveNuevoPedido() {
       );
     }
 
+    // --- Limpiar formulario ---
     ["np-personal", "np-titular", "np-estado", "np-precio", "np-descuento",
       "np-precio-total", "np-estado-pago", "np-mod", "np-notas",
       "np-imagenes-referencia", "np-imagenes-terminado"].forEach(id => {
@@ -311,6 +330,95 @@ async function saveNuevoPedido() {
 }
 
 /* ============================================================
+   CONTADOR DE TIEMPO (solo en modificar pedido)
+============================================================ */
+let timerInterval = null;
+let timerSeconds = 0;
+let currentNutForTimer = null;
+
+function formatTimer(seconds) {
+  const s = Number(seconds);
+  if (isNaN(s) || s < 0) return "00:00:00";
+  const total = Math.floor(s);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const pad = n => String(n).padStart(2, "0");
+  return pad(h) + ":" + pad(m) + ":" + pad(sec);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById("timer-display");
+  if (!el) return;
+  el.textContent = formatTimer(timerSeconds);
+  if (timerInterval) {
+    el.classList.add("running");
+  } else {
+    el.classList.remove("running");
+  }
+}
+
+async function saveTimerValue(nut, seconds) {
+  if (!nut) return;
+  try {
+    await db.collection("ticket").doc(nut).update({
+      "tiempo-preparacion": Math.floor(seconds)
+    });
+  } catch (e) {
+    console.error("Error guardando el contador:", e);
+  }
+}
+
+async function saveTimer() {
+  if (!currentNutForTimer) return;
+  return saveTimerValue(currentNutForTimer, timerSeconds);
+}
+
+function setTimerButtonState(isRunning) {
+  const btn = document.getElementById("timer-toggle-btn");
+  if (!btn) return;
+  if (isRunning) {
+    btn.textContent = "⏸ Desactivar contador";
+    btn.classList.remove("primary");
+    btn.classList.add("danger");
+  } else {
+    btn.textContent = "▶ Activar contador";
+    btn.classList.remove("danger");
+    btn.classList.add("primary");
+  }
+}
+
+async function toggleTimer() {
+  if (timerInterval) {
+    // --- Detener ---
+    clearInterval(timerInterval);
+    timerInterval = null;
+    setTimerButtonState(false);
+    updateTimerDisplay();
+    await saveTimer();
+  } else {
+    // --- Iniciar ---
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      updateTimerDisplay();
+      // Autoguardado cada 15 segundos
+      if (timerSeconds % 15 === 0) saveTimer();
+    }, 1000);
+    setTimerButtonState(true);
+    updateTimerDisplay();
+  }
+}
+
+/* Aviso al cerrar la página si el contador está corriendo */
+window.addEventListener("beforeunload", (e) => {
+  if (timerInterval) {
+    e.preventDefault();
+    e.returnValue = "El contador de tiempo está activo. ¿Seguro que querés salir?";
+    return e.returnValue;
+  }
+});
+
+/* ============================================================
    MODIFICAR PEDIDO
 ============================================================ */
 document.getElementById("mp-precio").addEventListener("input", calcMPTotal);
@@ -323,14 +431,30 @@ function calcMPTotal() {
 }
 
 function loadModPedido(nut, data) {
+  // Guardar el contador pendiente si era de otro pedido
+  if (timerInterval && currentNutForTimer) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    const oldNut = currentNutForTimer;
+    const oldSeconds = timerSeconds;
+    saveTimerValue(oldNut, oldSeconds); // fire-and-forget
+  }
+
+  // Resetear estado del contador
+  currentNutForTimer = nut;
+  timerSeconds = parseInt(data["tiempo-preparacion"]) || 0;
+  setTimerButtonState(false);
+  updateTimerDisplay();
+
+  // Cargar campos
   document.getElementById("mp-nut").value = nut;
   document.getElementById("mp-personal").value = data.personal || "";
   document.getElementById("mp-titular").value = data.titular || "";
-  document.getElementById("mp-estado").value = data.estado || "";
+  setSelectValue("mp-estado", data.estado || "");
   document.getElementById("mp-precio").value = data.precio != null ? data.precio : "";
   document.getElementById("mp-descuento").value = data["descuento-total"] != null ? data["descuento-total"] : "";
   document.getElementById("mp-precio-total").value = data["precio-total"] != null ? data["precio-total"] : "";
-  document.getElementById("mp-estado-pago").value = data["estado-pago"] || "";
+  setSelectValue("mp-estado-pago", data["estado-pago"] || "");
   document.getElementById("mp-mod").value = data.mod || "";
   document.getElementById("mp-notas").value = data.notas || "";
   document.getElementById("mp-imagenes-referencia").value = data["imagenes-referencia"] || "";
@@ -371,7 +495,8 @@ async function updatePedido() {
       mod: document.getElementById("mp-mod").value,
       notas: document.getElementById("mp-notas").value,
       "imagenes-referencia": document.getElementById("mp-imagenes-referencia").value,
-      "imagenes-terminado": document.getElementById("mp-imagenes-terminado").value
+      "imagenes-terminado": document.getElementById("mp-imagenes-terminado").value,
+      "tiempo-preparacion": Math.floor(timerSeconds)
     });
 
     alert("Pedido actualizado correctamente.");
@@ -484,8 +609,9 @@ function renderPedido(data) {
   );
 
   const nutEscaped = encodeURIComponent(data.NUT || "");
+  const tiempoSeg = parseInt(data["tiempo-preparacion"]) || 0;
+  const tiempoFormateado = formatTimer(tiempoSeg);
 
-  // Banner celebratorio: SOLO cuando está terminado
   const bannerTerminadoHtml = isTerminado ? (
     '<div class="banner-terminado">' +
       '<h3>🎉 ¡Tu pedido está terminado! 🎉</h3>' +
@@ -500,8 +626,8 @@ function renderPedido(data) {
     '<h2>Tu Pedido</h2>' +
     bannerTerminadoHtml +
     '<div class="recuadro" style="text-align:center;">' +
-      '<p style="font-size:2.5em;color:#007bff;margin:0;font-weight:800;">' +
-        escapeHtml(String(data["tiempo-preparacion"] != null ? data["tiempo-preparacion"] : "-")) +
+      '<p style="font-size:2.5em;color:#007bff;margin:0;font-weight:800;font-variant-numeric:tabular-nums;">' +
+        tiempoFormateado +
       '</p>' +
     '</div>' +
     '<p><strong>¿Qué significan esos números de arriba? </strong>Los números de arriba son el tiempo que va tardando el personal en hacer el pedido; no cuánto tiempo desde que lo pediste, sino el tiempo que le estuvo dedicando al pedido.</p>' +
