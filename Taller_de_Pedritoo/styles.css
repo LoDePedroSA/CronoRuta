@@ -1,10 +1,4 @@
-/* ============================================================
-   RESET Y BASE
-============================================================ */
-* {
-  box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
 body {
@@ -219,6 +213,60 @@ select {
 }
 
 /* ============================================================
+   CAMPOS SOLO-LECTURA (para la vista del pedido)
+   Imitan visualmente a los inputs para mantener el mismo look
+============================================================ */
+.readonly-field {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #dde3ea;
+  border-radius: 8px;
+  font-size: 14px;
+  margin: 6px 0;
+  background: #f5f7fa;
+  color: #333;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.readonly-field-timer {
+  justify-content: center;
+  font-size: 2.2em;
+  font-weight: 800;
+  color: #007bff;
+  font-variant-numeric: tabular-nums;
+  font-family: 'Courier New', 'Consolas', monospace;
+  letter-spacing: 3px;
+  min-height: 70px;
+}
+
+.readonly-field-block {
+  display: block;
+  padding: 14px;
+}
+
+.readonly-field-block ul.lista-detalles {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.readonly-field-block ul.lista-detalles li {
+  margin: 4px 0;
+}
+
+.field-hint {
+  font-size: 13px;
+  color: #667;
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+
+.field-hint strong { color: #333; }
+
+/* ============================================================
    BOTONES
 ============================================================ */
 button.primary {
@@ -391,13 +439,8 @@ hr.mini {
   animation: pulseBtn 2.5s ease-in-out infinite;
 }
 
-#floating-btn:hover {
-  transform: scale(1.08);
-}
-
-#floating-btn:active {
-  transform: scale(0.95);
-}
+#floating-btn:hover { transform: scale(1.08); }
+#floating-btn:active { transform: scale(0.95); }
 
 @keyframes pulseBtn {
   0%, 100% {
@@ -577,9 +620,7 @@ ul.lista-detalles li { margin: 6px 0; }
   animation: shimmer 2.5s infinite;
 }
 
-@keyframes shimmer {
-  to { left: 100%; }
-}
+@keyframes shimmer { to { left: 100%; } }
 
 .btn-terminado:hover {
   transform: translateY(-3px) scale(1.03);
@@ -609,9 +650,7 @@ ul.lista-detalles li { margin: 6px 0; }
   animation: timerTopBar 3s linear infinite;
 }
 
-@keyframes timerTopBar {
-  to { left: 100%; }
-}
+@keyframes timerTopBar { to { left: 100%; } }
 
 .timer-rec h3 {
   color: #333 !important;
@@ -622,9 +661,7 @@ ul.lista-detalles li { margin: 6px 0; }
   padding-bottom: 0 !important;
 }
 
-.timer-rec h3::after {
-  display: none;
-}
+.timer-rec h3::after { display: none; }
 
 .timer-display {
   font-size: 3.2em;

@@ -180,7 +180,7 @@ function addCosaInput(containerId, className, value) {
 }
 
 /* ============================================================
-   HELPER: SELECT (para asegurar que el valor guardado aparezca)
+   HELPER: SELECT
 ============================================================ */
 function setSelectValue(selectId, value) {
   const sel = document.getElementById(selectId);
@@ -286,7 +286,6 @@ async function saveNuevoPedido() {
 
     await db.collection("ticket").doc(nut).set(data);
 
-    // --- Mensaje para el cliente (formato WhatsApp) ---
     const mensaje =
       "Hola " + (titular || "[titular]") + ", tu pedido ha sido *cargado* en la *web de nuestro taller*, " +
       "si quieres *acceder* a ella para ver el *estado de tu pedido*, haz click en el siguiente *link*, " +
@@ -313,7 +312,6 @@ async function saveNuevoPedido() {
       );
     }
 
-    // --- Limpiar formulario ---
     ["np-personal", "np-titular", "np-estado", "np-precio", "np-descuento",
       "np-precio-total", "np-estado-pago", "np-mod", "np-notas",
       "np-imagenes-referencia", "np-imagenes-terminado"].forEach(id => {
@@ -330,7 +328,7 @@ async function saveNuevoPedido() {
 }
 
 /* ============================================================
-   CONTADOR DE TIEMPO (solo en modificar pedido)
+   CONTADOR DE TIEMPO
 ============================================================ */
 let timerInterval = null;
 let timerSeconds = 0;
@@ -351,11 +349,8 @@ function updateTimerDisplay() {
   const el = document.getElementById("timer-display");
   if (!el) return;
   el.textContent = formatTimer(timerSeconds);
-  if (timerInterval) {
-    el.classList.add("running");
-  } else {
-    el.classList.remove("running");
-  }
+  if (timerInterval) el.classList.add("running");
+  else el.classList.remove("running");
 }
 
 async function saveTimerValue(nut, seconds) {
@@ -390,18 +385,15 @@ function setTimerButtonState(isRunning) {
 
 async function toggleTimer() {
   if (timerInterval) {
-    // --- Detener ---
     clearInterval(timerInterval);
     timerInterval = null;
     setTimerButtonState(false);
     updateTimerDisplay();
     await saveTimer();
   } else {
-    // --- Iniciar ---
     timerInterval = setInterval(() => {
       timerSeconds++;
       updateTimerDisplay();
-      // Autoguardado cada 15 segundos
       if (timerSeconds % 15 === 0) saveTimer();
     }, 1000);
     setTimerButtonState(true);
@@ -409,7 +401,6 @@ async function toggleTimer() {
   }
 }
 
-/* Aviso al cerrar la página si el contador está corriendo */
 window.addEventListener("beforeunload", (e) => {
   if (timerInterval) {
     e.preventDefault();
@@ -431,22 +422,19 @@ function calcMPTotal() {
 }
 
 function loadModPedido(nut, data) {
-  // Guardar el contador pendiente si era de otro pedido
   if (timerInterval && currentNutForTimer) {
     clearInterval(timerInterval);
     timerInterval = null;
     const oldNut = currentNutForTimer;
     const oldSeconds = timerSeconds;
-    saveTimerValue(oldNut, oldSeconds); // fire-and-forget
+    saveTimerValue(oldNut, oldSeconds);
   }
 
-  // Resetear estado del contador
   currentNutForTimer = nut;
   timerSeconds = parseInt(data["tiempo-preparacion"]) || 0;
   setTimerButtonState(false);
   updateTimerDisplay();
 
-  // Cargar campos
   document.getElementById("mp-nut").value = nut;
   document.getElementById("mp-personal").value = data.personal || "";
   document.getElementById("mp-titular").value = data.titular || "";
@@ -552,7 +540,7 @@ function parseImageUrls(raw, emptyHtml) {
 }
 
 /* ============================================================
-   VISTA DEL PEDIDO
+   VISTA DEL PEDIDO (formato unificado con "Nuevo" y "Modificar")
 ============================================================ */
 async function loadPedidoTab(nut) {
   try {
@@ -560,8 +548,9 @@ async function loadPedidoTab(nut) {
 
     if (!doc.exists) {
       document.getElementById("pedido-content").innerHTML =
-        '<div class="recuadro"><h2>Ticket no encontrado</h2><p>El NUT <strong>'
-        + escapeHtml(nut) + '</strong> no existe en nuestra base de datos.</p></div>';
+        '<h2>Tu Pedido</h2>' +
+        '<div class="recuadro"><h3>Ticket no encontrado</h3>' +
+        '<p>El NUT <strong>' + escapeHtml(nut) + '</strong> no existe en nuestra base de datos.</p></div>';
     } else {
       renderPedido(doc.data());
     }
@@ -570,6 +559,7 @@ async function loadPedidoTab(nut) {
   } catch (e) {
     console.error(e);
     document.getElementById("pedido-content").innerHTML =
+      '<h2>Tu Pedido</h2>' +
       '<div class="recuadro"><p>Error al cargar el ticket.</p></div>';
   }
 }
@@ -597,12 +587,10 @@ function renderPedido(data) {
     data.imagenes,
     '<strong style="color: red;">No se han adjuntado imágenes...</strong>'
   );
-
   const imagenesRefHtml = parseImageUrls(
     data["imagenes-referencia"],
     '<strong style="color: red;">No se han adjuntado imágenes de referencia...</strong>'
   );
-
   const imagenesTermHtml = parseImageUrls(
     data["imagenes-terminado"],
     '<em style="color: #888;">Aún no se han adjuntado fotos del pedido terminado.</em>'
@@ -625,46 +613,75 @@ function renderPedido(data) {
   document.getElementById("pedido-content").innerHTML =
     '<h2>Tu Pedido</h2>' +
     bannerTerminadoHtml +
-    '<div class="recuadro" style="text-align:center;">' +
-      '<p style="font-size:2.5em;color:#007bff;margin:0;font-weight:800;font-variant-numeric:tabular-nums;">' +
-        tiempoFormateado +
-      '</p>' +
-    '</div>' +
-    '<p><strong>¿Qué significan esos números de arriba? </strong>Los números de arriba son el tiempo que va tardando el personal en hacer el pedido; no cuánto tiempo desde que lo pediste, sino el tiempo que le estuvo dedicando al pedido.</p>' +
-    '<hr>' +
-    '<p><strong>Personal que está atendiendo tu pedido: </strong>' + escapeHtml(data.personal || "-") + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Titular del Pedido (Número de teléfono): </strong>' + escapeHtml(data.titular || "-") + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Detalles del pedido: </strong></p>' +
-    '<ul class="lista-detalles">' + cosasHtml + '</ul>' +
-    '<hr class="mini">' +
-    '<p><strong>Estado del pedido: </strong><span style="color:' + estadoColor + ';font-weight:bold;">' + escapeHtml(estado || "-") + '</span></p>' +
-    '<hr class="mini">' +
-    '<p><strong>Fecha y Hora cuando se registró el pedido: </strong>' + formatDate(data.registro) + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Precio del Pedido: </strong>$' + formatMoney(data.precio) + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Descuentos aplicados en total: </strong>' + escapeHtml(String(data["descuento-total"] != null ? data["descuento-total"] : "-")) + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Total a pagar: </strong>$' + formatMoney(data["precio-total"]) + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Estado del pago: </strong><span style="color:' + estadoPagoColor + ';font-weight:bold;">' + escapeHtml(estadoPago || "-") + '</span></p>' +
-    '<hr class="mini">' +
-    '<p><strong>NUT del Pedido: </strong>' + escapeHtml(data.NUT || "-") + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Modelo del Pedido: </strong>' + escapeHtml(data.mod || "-") + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Notas extras: </strong>' + escapeHtml(data.notas || "-") + '</p>' +
-    '<hr class="mini">' +
-    '<p><strong>Imágenes de cómo quedó el pedido:</strong></p>' +
-    '<div class="recuadro">' + imagenesHtml + '</div>' +
-    '<hr class="mini">' +
-    '<p><strong>Fotos de referencia:</strong></p>' +
-    '<div class="recuadro">' + imagenesRefHtml + '</div>' +
-    '<hr class="mini">' +
-    '<p><strong>Fotos del pedido terminado:</strong></p>' +
-    '<div class="recuadro">' + imagenesTermHtml + '</div>';
+    '<div class="recuadro">' +
+
+      '<strong>Tiempo de preparación:</strong>' +
+      '<div class="readonly-field readonly-field-timer">' + tiempoFormateado + '</div>' +
+      '<p class="field-hint"><strong>¿Qué significan esos números de arriba? </strong>Los números de arriba son el tiempo que va tardando el personal en hacer el pedido; no cuánto tiempo desde que lo pediste, sino el tiempo que le estuvo dedicando al pedido.</p>' +
+      '<hr class="mini">' +
+
+      '<strong>Personal que está atendiendo tu pedido:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(data.personal || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Titular del Pedido (Número de teléfono):</strong>' +
+      '<div class="readonly-field">' + escapeHtml(data.titular || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Detalles del pedido:</strong>' +
+      '<div class="readonly-field readonly-field-block">' +
+        '<ul class="lista-detalles">' + cosasHtml + '</ul>' +
+      '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Estado del pedido:</strong>' +
+      '<div class="readonly-field" style="color:' + estadoColor + ';font-weight:700;">' + escapeHtml(estado || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Fecha y Hora cuando se registró el pedido:</strong>' +
+      '<div class="readonly-field">' + formatDate(data.registro) + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Precio del Pedido:</strong>' +
+      '<div class="readonly-field">$' + formatMoney(data.precio) + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Descuentos aplicados en total:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(String(data["descuento-total"] != null ? data["descuento-total"] : "-")) + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Total a pagar:</strong>' +
+      '<div class="readonly-field">$' + formatMoney(data["precio-total"]) + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Estado del pago:</strong>' +
+      '<div class="readonly-field" style="color:' + estadoPagoColor + ';font-weight:700;">' + escapeHtml(estadoPago || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>NUT del Pedido:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(data.NUT || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Modelo del Pedido:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(data.mod || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Notas extras:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(data.notas || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Imágenes de cómo quedó el pedido:</strong>' +
+      '<div class="readonly-field readonly-field-block">' + imagenesHtml + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Fotos de referencia:</strong>' +
+      '<div class="readonly-field readonly-field-block">' + imagenesRefHtml + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Fotos del pedido terminado:</strong>' +
+      '<div class="readonly-field readonly-field-block">' + imagenesTermHtml + '</div>' +
+
+    '</div>';
 }
 
 /* ============================================================
