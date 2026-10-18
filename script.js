@@ -63,6 +63,11 @@
                 'B. Matera X B. Rivadavia - Est. Merlo',
                 'La Teja - Est. Merlo'
             ]
+        },
+        unionCarcovena: {
+            nombre: 'Union Carcoveña S.A.',
+            lineas: ['83'],
+            ramales: ['Constitucion - Jose Leon Suarez - Boulogne']
         }
     };
 
@@ -75,7 +80,8 @@
         laUnionVicenteLopez: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion'],
         chubut: ['name','int','modelo','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion'],
         mogsma: ['name','int','sda-term-i','llg-term-i','sda-term-v','llg-term-v'],
-        tum: ['name','legajo','int','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion']
+        tum: ['name','legajo','int','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion'],
+        unionCarcovena: ['name','int','modelo','sda-term-i','llg-term-i','sda-term-v','llg-term-v','satisfaccion']
     };
 
     const TODOS_CAMPOS = ['name','legajo','int','modelo','ing-srv','sda-term-i','llg-term-i','receso','sda-term-v','llg-term-v','satisfaccion','adelanto_atraso_ida','adelanto_atraso_vuelta'];
@@ -1286,6 +1292,26 @@ VUELTA:
 *HORARIO DE LLEGADA*: ${llgTermV}
 
 *SATISFACCIÓN DE PASAJEROS/%*: ${satisfaccion || '_________________'}
+`.trim();
+        } else if (formato === 'unionCarcovena') {
+            plantilla = `
+*Planilla Unión Carcoveña L83*
+*Chofer:* ${name}
+*Int:* ${interno}
+*Coche:* ${modelo || '—'}
+
+    *IDA*
+*INICIO:* ${sdaTermI}
+*LLEGADA:* ${llgTermI}
+
+    *VUELTA*
+
+*INICIO:* ${sdaTermV}
+*LLEGADA:* ${llgTermV}
+
+  *ACCIDENTES*: 
+
+    *SATISFACCIÓN*: ${satisfaccion || '_________________'}
 `.trim();
         }
 
