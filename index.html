@@ -1,236 +1,219 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taller de Pedritoo</title>
-
-  <link rel="icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
-
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="./logo.png" type="image/x-icon">
+    <title>CronoRuta Pro</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CronoRuta Pro">
+    <link rel="apple-touch-icon" href="./logo.png">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+    <div class="container" id="mainContainer">
+        <div class="navbar">
+            <button class="navbar-btn red" onclick="abrirModalFormato()" aria-label="Cambiar empresa">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
+                    <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                </svg>
+            </button>
+            <div class="navbar-spacer"></div>
+            <button class="navbar-btn green" id="btnFloat" onclick="togglePiP()" aria-label="Ventana flotante" title="Ventana flotante">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <rect x="10" y="10" width="8" height="6" rx="1" ry="1"/>
+                </svg>
+            </button>
+            <button class="navbar-btn whatsapp" onclick="abrirModalCredits()" aria-label="Créditos">
+                <img src="./whatsapp.png" alt="WhatsApp">
+            </button>
+            <button class="navbar-btn" onclick="abrirModalPreferencias()" aria-label="Preferencias">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+        </div>
 
-  <div id="welcome-overlay" onclick="dismissWelcome()">
-    <div id="welcome-text"></div>
-  </div>
+        <div class="card" id="counterCard">
+            <div class="counter-header">
+                <span>🚏 Ramal: <strong id="ramalDisplay">—</strong></span>
+                <span>🔢 Línea: <strong id="lineaDisplay">—</strong></span>
+            </div>
+            <div class="time-display paused" id="timeDisplay">+ 00:00</div>
+            <div style="text-align:center;">
+                <span class="phase-indicator phase-ida" id="phaseIndicator">⏳ Esperando inicio</span>
+                <span class="route-time-badge" id="routeTimeBadge">⏱️ 10 min</span>
+            </div>
+            <div class="total-time" id="totalTimeDisplay">
+                Tiempo total: <strong>—</strong>
+            </div>
+        </div>
 
-  <section id="inicio" class="tab-section active">
+        <div class="separator"></div>
 
-    <div class="recuadro">
-      <h3>¿Quieres acceder al catálogo de armados que tiene nuestro taller?</h3>
-      <p>Actualmente nuestro catálogo <strong style="color: red;">no está disponible</strong>, pero nosotros esperamos que para fin de año esté listo.</p>
+        <div class="card">
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="abrirModal('tiempo')">⏱️ Definir tiempo recorrido</button>
+            </div>
+            <div style="margin-top:12px;">
+                <button class="btn btn-main" id="btnMain">Iniciar Ramal - S: IDA</button>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="card">
+            <h3 style="margin-bottom:16px; font-size:1rem; color:var(--accent);">📋 Formulario para completar el formato</h3>
+
+            <div class="form-group" id="fg-name">
+                <label>Ingrese su Nombre y Apellido:</label>
+                <input type="text" id="name" placeholder="Ej: Juan Pérez" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-legajo">
+                <label>Ingrese su legajo:</label>
+                <input type="text" id="legajo" placeholder="Ej: 2001" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-int">
+                <label>Ingrese su número de interno:</label>
+                <input type="text" id="int" placeholder="Ej: 4521" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-modelo">
+                <label>Modelo del colectivo (opcional):</label>
+                <input type="text" id="modelo" placeholder="Ej: Mercedes Benz" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-ing-srv">
+                <label>Horario de Ingreso de Servicio:</label>
+                <div class="input-row">
+                    <input type="time" id="ing-srv" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('ing-srv')" id="btn-ing-srv">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-sda-term-i">
+                <label>Horario de Salida de la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="sda-term-i" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('sda-term-i')" id="btn-sda-term-i">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-llg-term-i">
+                <label>Horario de Llegada a la 2da Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="llg-term-i" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('llg-term-i')" id="btn-llg-term-i">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-receso">
+                <label>Tiempo de descanso (minutos):</label>
+                <input type="number" id="receso" placeholder="Ej: 15" min="0" value="15" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-sda-term-v">
+                <label>Horario de Salida hacia la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="sda-term-v" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('sda-term-v')" id="btn-sda-term-v">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-llg-term-v">
+                <label>Horario de Llegada a la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="llg-term-v" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('llg-term-v')" id="btn-llg-term-v">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-satisfaccion">
+                <label>Satisfacción (opcional):</label>
+                <input type="text" id="satisfaccion" placeholder="Ej: Excelente" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-adelanto_atraso_ida">
+                <label>Adelanto / Atraso IDA (minutos):</label>
+                <input type="text" id="adelanto_atraso_ida" placeholder="Se calcula automáticamente" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-adelanto_atraso_vuelta">
+                <label>Adelanto / Atraso VUELTA (minutos):</label>
+                <input type="text" id="adelanto_atraso_vuelta" placeholder="Se calcula automáticamente" class="autocomplete" autocomplete="off">
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;" onclick="completar()">📨 Enviar</button>
+            <div class="result-panel" id="resultPanel"></div>
+            <button class="btn btn-copy" id="btnCopy" style="display:none;" onclick="copiarAlPortapapeles()">📋 Copiar al portapapeles</button>
+        </div>
     </div>
 
-    <div class="recuadro clickable" onclick="window.location.href='https://lodepedrosa.github.io/CronoRuta'">
-      <h3>¿Quieres utilizar nuestra aplicación llamada CronoRuta PRO?</h3>
-      <p>Esta es una aplicación que desarrollamos, que tiene los formatos de planilla de varias empresas, y esta app te cuenta el tiempo y te va tirando alertas para que regules tu horario para llegar a tiempo, ni muy atrasado ni muy adelantado. Si quieres acceder a nuestra aplicación, solo tocá este mensaje...</p>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">Definir</h3>
+            <input type="text" id="modalInput" placeholder="Ingrese el valor...">
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn btn-primary" id="modalConfirm">Guardar</button>
+            </div>
+        </div>
     </div>
 
-    <div class="recuadro clickable" onclick="window.location.href='http://wa.me/+542215989210'">
-      <h3>¿Quieres hacernos un pedido?</h3>
-      <p>Si nos quieres hacer un pedido por primera vez y decís la palabra clave <strong>CESKA</strong>, obtendrás 5% de descuento en el pedido. Haciendo clic en este mensaje te llevará a nuestro número de teléfono, así podemos cotizarte el pedido...</p>
+    <div class="modal-overlay" id="formatoOverlay">
+        <div class="modal">
+            <h3>Seleccionar Empresa / Línea / Ramal</h3>
+            <div class="form-group">
+                <label>Empresa:</label>
+                <select id="empresaSelect"></select>
+            </div>
+            <div class="form-group" id="lineaGroup">
+                <label>Línea:</label>
+                <select id="lineaSelect"></select>
+            </div>
+            <div class="form-group" id="ramalGroup">
+                <label>Ramal:</label>
+                <select id="ramalSelect"></select>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="confirmarFormato()">Confirmar</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Admin: nuevo pedido -->
-    <div id="nuevo-pedido" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('nuevo-pedido-pag')">
-      <h3>¿Quieres cargar un nuevo pedido?</h3>
-      <p>Haz clic para acceder al sistema de carga de modelos.</p>
+    <div class="modal-overlay" id="preferenciasOverlay">
+        <div class="modal">
+            <h3>Preferencias de Datos</h3>
+            <p>¿Quiere completar la planilla con los datos del Contador de Servicio o los rellenas a mano?</p>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="saveData('contador-si')">✅ Sí, quiero usar los datos del Contador de Servicio</button>
+                <button class="btn btn-danger" onclick="saveData('contador-no')">❌ No, prefiero rellenar los datos a mano</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Admin: modificar pedido -->
-    <div id="mod-pedido" class="recuadro admin-only" style="display:none;">
-      <h3>¿Quieres modificar la información de un pedido?</h3>
-      <input type="text" id="nut-mod" placeholder="Aquí introducí el NUT" maxlength="20">
-      <button class="primary" onclick="verificarNUT('mod')">Verificar el NUT</button>
+    <div class="modal-overlay" id="esperaModal">
+        <div class="modal">
+            <h3>⏳ Tiempo de espera</h3>
+            <p>¿Cuántos minutos de espera va a realizar?</p>
+            <input type="number" id="esperaInput" placeholder="Ej: 15" min="0" value="15">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="confirmarEspera()">Confirmar espera</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Admin: eliminar pedido -->
-    <div id="eliminar-pedido" class="recuadro admin-only" style="display:none;">
-      <h3>¿Quieres eliminar un pedido?</h3>
-      <input type="text" id="nut-eliminar" placeholder="Aquí introducí el NUT" maxlength="20">
-      <button class="primary danger" onclick="verificarNUT('eliminar')">Verificar el NUT</button>
+    <div class="modal-overlay" id="creditsOverlay">
+        <div class="modal">
+            <h2>Creador</h2>
+            <div class="btn-group">
+                <button class="btn btn-whatsapp" onclick="window.open('https://wa.me/+542215989210', '_blank')">📱 Número del Creador</button>
+                <button class="btn btn-whatsapp" onclick="window.open('https://whatsapp.com/channel/0029Vb8YtlnI1rcrl09nja0B', '_blank')">📢 Canal del Creador</button>
+            </div>
+            <div class="btn-group" style="margin-top:12px;">
+                <button class="btn btn-outline" onclick="cerrarModalCredits()">Cerrar</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Admin: filtros -->
-    <div id="filtros-acceso" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('filtros-pag')">
-      <h3>¿Quieres buscar y filtrar pedidos?</h3>
-      <p>Haz clic para acceder al buscador de pedidos por estado de pago y de preparación.</p>
-    </div>
+    <div class="toast" id="toast">✅ Copiado al portapapeles</div>
 
-    <!-- Usuario: ver estado -->
-    <div class="recuadro">
-      <h3>¿Hiciste un pedido y querés ver cuánto se ha avanzado?</h3>
-      <p>Para ver el proceso de tu pedido tienes que buscar en el chat el NUT (Número Único de Ticket), el cual debe estar en el chat con el taller; si no, pedínoslo de vuelta. Una vez que lo tengas, tendrás que poner el código en el siguiente campo y, una vez colocado, haz clic en verificar. Si el NUT es válido, serás redireccionado automáticamente a la página del ticket.</p>
-      <input type="text" id="nut-estado" placeholder="Aquí introducí tu NUT" maxlength="20">
-      <button class="primary" onclick="verificarNUT('estado')">Verificar el NUT</button>
-    </div>
-
-  </section>
-
-  <section id="nuevo-pedido-pag" class="tab-section admin-only" style="display:none;">
-    <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
-    <h2>Nuevo Pedido</h2>
-    <div class="recuadro">
-      <strong>Personal que está atendiendo tu pedido:</strong>
-      <input type="text" id="np-personal">
-      <hr class="mini">
-      <strong>Titular del Pedido (Número de teléfono):</strong>
-      <input type="text" id="np-titular">
-      <hr class="mini">
-      <strong>Detalles del pedido:</strong>
-      <div id="np-cosas"></div>
-      <button class="primary" onclick="addCosaInput('np-cosas','np-cosa')">+ Agregar detalle</button>
-      <hr class="mini">
-      <strong>Estado del pedido:</strong>
-      <select id="np-estado">
-        <option value="">-- Seleccionar --</option>
-        <option value="Solamente tomado">Solamente tomado</option>
-        <option value="En proceso">En proceso</option>
-        <option value="Terminado">Terminado</option>
-      </select>
-      <hr class="mini">
-      <strong>Precio del Pedido:</strong>
-      <input type="number" id="np-precio" step="0.01">
-      <hr class="mini">
-      <strong>Descuentos aplicados en total:</strong>
-      <input type="number" id="np-descuento" step="0.01">
-      <hr class="mini">
-      <strong>Total a pagar (calculado automáticamente):</strong>
-      <input type="number" id="np-precio-total" readonly>
-      <hr class="mini">
-      <strong>Estado del pago:</strong>
-      <select id="np-estado-pago">
-        <option value="">-- Seleccionar --</option>
-        <option value="Pagado">Pagado</option>
-        <option value="No pagado">No pagado</option>
-      </select>
-      <hr class="mini">
-      <strong>Modelo del Pedido:</strong>
-      <input type="text" id="np-mod">
-      <hr class="mini">
-      <strong>Notas extras:</strong>
-      <input type="text" id="np-notas">
-      <hr class="mini">
-      <strong>Fotos de referencia (URLs separadas por coma y espacio):</strong>
-      <textarea id="np-imagenes-referencia" rows="3" placeholder="https://ejemplo.com/img1.png, https://ejemplo.com/img2.png"></textarea>
-      <hr class="mini">
-      <strong>Fotos del pedido terminado (URLs separadas por coma y espacio):</strong>
-      <textarea id="np-imagenes-terminado" rows="3" placeholder="https://ejemplo.com/final1.png, https://ejemplo.com/final2.png"></textarea>
-      <hr class="mini">
-      <button class="primary" onclick="saveNuevoPedido()">Guardar Pedido</button>
-    </div>
-  </section>
-
-  <section id="mod-pedido-pag" class="tab-section admin-only" style="display:none;">
-    <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
-    <h2>Modificar Pedido</h2>
-
-    <div class="recuadro timer-rec">
-      <h3>Tiempo de preparación</h3>
-      <div class="timer-display" id="timer-display">00:00:00</div>
-      <button class="primary" id="timer-toggle-btn" onclick="toggleTimer()">▶ Activar contador</button>
-      <p class="timer-hint">El tiempo se guarda automáticamente cada 15 segundos mientras el contador está activo.</p>
-    </div>
-
-    <div class="recuadro">
-      <strong>NUT del Pedido:</strong>
-      <input type="text" id="mp-nut" readonly>
-      <hr class="mini">
-      <strong>Personal que está atendiendo tu pedido:</strong>
-      <input type="text" id="mp-personal">
-      <hr class="mini">
-      <strong>Titular del Pedido (Número de teléfono):</strong>
-      <input type="text" id="mp-titular">
-      <hr class="mini">
-      <strong>Detalles del pedido:</strong>
-      <div id="mp-cosas"></div>
-      <button class="primary" onclick="addCosaInput('mp-cosas','mp-cosa')">+ Agregar detalle</button>
-      <hr class="mini">
-      <strong>Estado del pedido:</strong>
-      <select id="mp-estado">
-        <option value="">-- Seleccionar --</option>
-        <option value="Solamente tomado">Solamente tomado</option>
-        <option value="En proceso">En proceso</option>
-        <option value="Terminado">Terminado</option>
-      </select>
-      <hr class="mini">
-      <strong>Precio del Pedido:</strong>
-      <input type="number" id="mp-precio" step="0.01">
-      <hr class="mini">
-      <strong>Descuentos aplicados en total:</strong>
-      <input type="number" id="mp-descuento" step="0.01">
-      <hr class="mini">
-      <strong>Total a pagar:</strong>
-      <input type="number" id="mp-precio-total" readonly>
-      <hr class="mini">
-      <strong>Estado del pago:</strong>
-      <select id="mp-estado-pago">
-        <option value="">-- Seleccionar --</option>
-        <option value="Pagado">Pagado</option>
-        <option value="No pagado">No pagado</option>
-      </select>
-      <hr class="mini">
-      <strong>Modelo del Pedido:</strong>
-      <input type="text" id="mp-mod">
-      <hr class="mini">
-      <strong>Notas extras:</strong>
-      <input type="text" id="mp-notas">
-      <hr class="mini">
-      <strong>Fotos de referencia (URLs separadas por coma y espacio):</strong>
-      <textarea id="mp-imagenes-referencia" rows="3" placeholder="https://ejemplo.com/img1.png, https://ejemplo.com/img2.png"></textarea>
-      <hr class="mini">
-      <strong>Fotos del pedido terminado (URLs separadas por coma y espacio):</strong>
-      <textarea id="mp-imagenes-terminado" rows="3" placeholder="https://ejemplo.com/final1.png, https://ejemplo.com/final2.png"></textarea>
-      <hr class="mini">
-      <button class="primary" onclick="updatePedido()">Actualizar Pedido</button>
-    </div>
-  </section>
-
-  <!-- ================== FILTROS (admin) ================== -->
-  <section id="filtros-pag" class="tab-section admin-only" style="display:none;">
-    <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
-    <h2>Buscar Pedidos</h2>
-
-    <div class="recuadro">
-      <strong>Seleccioná un filtro:</strong>
-      <div class="filtros-botones">
-        <button class="primary" id="filtro-terminados" onclick="aplicarFiltro('terminados')">✅ Pedidos Terminados</button>
-        <button class="primary" id="filtro-sin-pagar" onclick="aplicarFiltro('sin-pagar')">💸 Pedidos sin pagar</button>
-        <button class="primary" id="filtro-sin-terminar" onclick="aplicarFiltro('sin-terminar')">⏳ Pedidos sin terminar</button>
-      </div>
-      <div class="error-msg" id="filtros-error"></div>
-    </div>
-
-    <div id="filtros-resultados"></div>
-  </section>
-
-  <section id="pedido" class="tab-section">
-    <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
-    <div id="pedido-content"></div>
-  </section>
-
-  <button id="floating-btn" onclick="toggleFloatingMenu()">🔐</button>
-
-  <div id="login-menu" class="floating-menu">
-    <h4>Iniciar sesión</h4>
-    <strong>Introducí la clave de acceso:</strong>
-    <input type="text" id="login-input" placeholder="Esperando clave de acceso..." inputmode="numeric" maxlength="6" autocomplete="off">
-    <div class="error-msg" id="login-error"></div>
-  </div>
-
-  <div id="logout-menu" class="floating-menu">
-    <h4>Cerrar sesión</h4>
-    <strong>¿Seguro que querés cerrar sesión?</strong>
-    <div class="btn-row">
-      <button class="primary danger" onclick="logout()" style="flex:1;">Sí</button>
-      <button class="primary" onclick="document.getElementById('logout-menu').classList.remove('open')" style="flex:1;">No</button>
-    </div>
-  </div>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="script.js"></script>
+    <script src="./script.js"></script>
 </body>
 </html>

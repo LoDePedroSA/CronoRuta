@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CronoRuta Pro - Android</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="navbar">
+            <button class="navbar-btn red" onclick="abrirModalFormato()" aria-label="Cambiar empresa">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
+                    <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                </svg>
+            </button>
+            <div class="navbar-spacer"></div>
+            <!-- Botón adaptado para notificar a la app nativa o activar flotante -->
+            <button class="navbar-btn green" id="btnFloat" onclick="notificarAppAndroid()" aria-label="Ventana flotante" title="Ventana flotante">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <rect x="10" y="10" width="8" height="6" rx="1" ry="1"/>
+                </svg>
+            </button>
+            <button class="navbar-btn whatsapp" onclick="abrirModalCredits()" aria-label="Créditos">
+                <img src="./whatsapp.png" alt="WhatsApp">
+            </button>
+            <button class="navbar-btn" onclick="abrirModalPreferencias()" aria-label="Preferencias">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="card" id="counterCard">
+            <div class="counter-header">
+                <span>🚏 Ramal: <strong id="ramalDisplay">—</strong></span>
+                <span>🔢 Línea: <strong id="lineaDisplay">—</strong></span>
+            </div>
+            <div class="time-display paused" id="timeDisplay">+ 00:00</div>
+            <div style="text-align:center;">
+                <span class="phase-indicator phase-ida" id="phaseIndicator">⏳ Esperando inicio</span>
+                <span class="route-time-badge" id="routeTimeBadge">⏱️ 10 min</span>
+            </div>
+            <div class="total-time" id="totalTimeDisplay">
+                Tiempo total: <strong>—</strong>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="card">
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="abrirModal('tiempo')">⏱️ Definir tiempo recorrido</button>
+            </div>
+            <div style="margin-top:12px;">
+                <button class="btn btn-main" id="btnMain">Iniciar Ramal - S: IDA</button>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="card">
+            <h3 style="margin-bottom:16px; font-size:1rem; color:var(--accent);">📋 Formulario para completar el formato</h3>
+
+            <div class="form-group" id="fg-name">
+                <label>Ingrese su Nombre y Apellido:</label>
+                <input type="text" id="name" placeholder="Ej: Juan Pérez" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-legajo">
+                <label>Ingrese su legajo:</label>
+                <input type="text" id="legajo" placeholder="Ej: 2001" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-int">
+                <label>Ingrese su número de interno:</label>
+                <input type="text" id="int" placeholder="Ej: 4521" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-modelo">
+                <label>Modelo del colectivo (opcional):</label>
+                <input type="text" id="modelo" placeholder="Ej: Mercedes Benz" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-ing-srv">
+                <label>Horario de Ingreso de Servicio:</label>
+                <div class="input-row">
+                    <input type="time" id="ing-srv" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('ing-srv')" id="btn-ing-srv">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-sda-term-i">
+                <label>Horario de Salida de la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="sda-term-i" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('sda-term-i')" id="btn-sda-term-i">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-llg-term-i">
+                <label>Horario de Llegada a la 2da Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="llg-term-i" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('llg-term-i')" id="btn-llg-term-i">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-receso">
+                <label>Tiempo de descanso (minutos):</label>
+                <input type="number" id="receso" placeholder="Ej: 15" min="0" value="15" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-sda-term-v">
+                <label>Horario de Salida hacia la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="sda-term-v" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('sda-term-v')" id="btn-sda-term-v">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-llg-term-v">
+                <label>Horario de Llegada a la 1er Cabecera:</label>
+                <div class="input-row">
+                    <input type="time" id="llg-term-v" autocomplete="off">
+                    <button class="btn btn-outline" onclick="setNow('llg-term-v')" id="btn-llg-term-v">🕐 Ahora</button>
+                </div>
+            </div>
+            <div class="form-group" id="fg-satisfaccion">
+                <label>Satisfacción (opcional):</label>
+                <input type="text" id="satisfaccion" placeholder="Ej: Excelente" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-adelanto_atraso_ida">
+                <label>Adelanto / Atraso IDA (minutos):</label>
+                <input type="text" id="adelanto_atraso_ida" placeholder="Se calcula automáticamente" class="autocomplete" autocomplete="off">
+            </div>
+            <div class="form-group" id="fg-adelanto_atraso_vuelta">
+                <label>Adelanto / Atraso VUELTA (minutos):</label>
+                <input type="text" id="adelanto_atraso_vuelta" placeholder="Se calcula automáticamente" class="autocomplete" autocomplete="off">
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;" onclick="completar()">📨 Enviar</button>
+            <div class="result-panel" id="resultPanel"></div>
+            <button class="btn btn-copy" id="btnCopy" style="display:none;" onclick="copiarAlPortapapeles()">📋 Copiar al portapapeles</button>
+        </div>
+    </div>
+
+    <!-- Modales idénticos a los tuyos -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">Definir</h3>
+            <input type="text" id="modalInput" placeholder="Ingrese el valor...">
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn btn-primary" id="modalConfirm">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="formatoOverlay">
+        <div class="modal">
+            <h3>Seleccionar Empresa / Línea / Ramal</h3>
+            <div class="form-group">
+                <label>Empresa:</label>
+                <select id="empresaSelect"></select>
+            </div>
+            <div class="form-group" id="lineaGroup">
+                <label>Línea:</label>
+                <select id="lineaSelect"></select>
+            </div>
+            <div class="form-group" id="ramalGroup">
+                <label>Ramal:</label>
+                <select id="ramalSelect"></select>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="confirmarFormato()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="preferenciasOverlay">
+        <div class="modal">
+            <h3>Preferencias de Datos</h3>
+            <p>¿Quiere completar la planilla con los datos del Contador de Servicio o los rellenas a mano?</p>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="saveData('contador-si')">✅ Sí, quiero usar los datos</button>
+                <button class="btn btn-danger" onclick="saveData('contador-no')">❌ No, prefiero rellenar a mano</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="esperaModal">
+        <div class="modal">
+            <h3>⏳ Tiempo de espera</h3>
+            <p>¿Cuántos minutos de espera va a realizar?</p>
+            <input type="number" id="esperaInput" placeholder="Ej: 15" min="0" value="15">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="confirmarEspera()">Confirmar espera</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="creditsOverlay">
+        <div class="modal">
+            <h2>Creador</h2>
+            <div class="btn-group">
+                <button class="btn btn-whatsapp" onclick="window.open('https://wa.me/+542215989210', '_blank')">📱 Número del Creador</button>
+                <button class="btn btn-whatsapp" onclick="window.open('https://whatsapp.com/channel/0029Vb8YtlnI1rcrl09nja0B', '_blank')">📢 Canal del Creador</button>
+            </div>
+            <div class="btn-group" style="margin-top:12px;">
+                <button class="btn btn-outline" onclick="cerrarModalCredits()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">✅ Copiado al portapapeles</div>
+
+    <!-- Cargamos tu mismo script.js -->
+    <script src="./script.js"></script>
+    <script>
+        // Función puente para enviar datos hacia la app Android nativa
+        function notificarAppAndroid() {
+            const tiempoTexto = document.getElementById('timeDisplay').innerText;
+            const faseTexto = document.getElementById('phaseIndicator').innerText;
+            const lineaTxt = document.getElementById('lineaDisplay').innerText;
+            const ramalTxt = document.getElementById('ramalDisplay').innerText;
+
+            const datosParaApp = JSON.stringify({
+                tiempo: tiempoTexto,
+                fase: faseTexto,
+                linea: lineaTxt,
+                ramal: ramalTxt
+            });
+
+            // Si Android está escuchando, llamamos a la interfaz que configuramos en Kotlin
+            if (window.Android && typeof window.Android.enviarDatosFlotantes === 'function') {
+                window.Android.enviarDatosFlotantes(datosParaApp);
+            } else {
+                alert("Modo Web: " + datosParaApp);
+            }
+        }
+    </script>
+</body>
+</html>
