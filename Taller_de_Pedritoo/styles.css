@@ -213,8 +213,7 @@ select {
 }
 
 /* ============================================================
-   CAMPOS SOLO-LECTURA (para la vista del pedido)
-   Imitan visualmente a los inputs para mantener el mismo look
+   CAMPOS SOLO-LECTURA
 ============================================================ */
 .readonly-field {
   width: 100%;
@@ -557,77 +556,6 @@ ul.lista-detalles li { margin: 6px 0; }
 }
 
 /* ============================================================
-   BANNER "PEDIDO TERMINADO"
-============================================================ */
-.banner-terminado {
-  background: linear-gradient(135deg, #d4edda 0%, #a8e6cf 100%);
-  border: 2px solid #28a745;
-  border-radius: 14px;
-  padding: 28px 22px;
-  margin: 20px 0 25px;
-  text-align: center;
-  animation: bounceIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 10px 30px rgba(40, 167, 69, 0.25);
-}
-
-.banner-terminado h3 {
-  color: #155724;
-  margin: 0 0 10px;
-  font-size: 1.5em;
-  animation: gentleBounce 2s ease-in-out infinite;
-}
-
-.banner-terminado p {
-  color: #155724;
-  margin: 0 0 18px;
-}
-
-@keyframes bounceIn {
-  0%   { opacity: 0; transform: scale(0.7); }
-  60%  { opacity: 1; transform: scale(1.05); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes gentleBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
-.btn-terminado {
-  display: inline-block;
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: #fff;
-  padding: 14px 28px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 1em;
-  letter-spacing: 0.3px;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-terminado::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
-  animation: shimmer 2.5s infinite;
-}
-
-@keyframes shimmer { to { left: 100%; } }
-
-.btn-terminado:hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 10px 28px rgba(40, 167, 69, 0.6);
-}
-
-/* ============================================================
    CONTADOR DE TIEMPO
 ============================================================ */
 .timer-rec {
@@ -697,4 +625,102 @@ ul.lista-detalles li { margin: 6px 0; }
   font-size: 15px;
   padding: 12px 28px;
   min-width: 220px;
+}
+
+/* ============================================================
+   FILTROS DE PEDIDOS
+============================================================ */
+.filtros-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.filtros-botones button {
+  flex: 1 1 auto;
+  min-width: 180px;
+}
+
+.filtros-botones button.activo {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  box-shadow: 0 6px 20px rgba(106, 17, 203, 0.5);
+  transform: translateY(-2px);
+}
+
+.ticket-card {
+  background: #fff;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #e2e6eb;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  animation: cardIn 0.4s ease-out both;
+}
+
+.ticket-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(0, 123, 255, 0.2);
+  border-color: rgba(0, 123, 255, 0.35);
+}
+
+.ticket-card h4 {
+  margin: 0 0 8px;
+  font-size: 1.15em;
+  color: #007bff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ticket-card .nut {
+  font-family: 'Courier New', 'Consolas', monospace;
+  letter-spacing: 2px;
+  font-weight: 800;
+}
+
+.ticket-card p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.ticket-card .estado-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.estado-badge.terminado,
+.estado-badge.pagado { background: #d4edda; color: #155724; }
+
+.estado-badge.en-proceso { background: #fff3cd; color: #856404; }
+
+.estado-badge.sin-terminar,
+.estado-badge.no-pagado { background: #f8d7da; color: #721c24; }
+
+.filtros-vacio {
+  background: #fff;
+  border: 1px dashed #c7d0da;
+  border-radius: 12px;
+  padding: 30px 20px;
+  text-align: center;
+  color: #667;
+  font-style: italic;
+}
+
+.filtros-count {
+  color: #555;
+  font-size: 14px;
+  margin: 6px 0 16px;
+  font-weight: 600;
 }

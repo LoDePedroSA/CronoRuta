@@ -540,7 +540,105 @@ function parseImageUrls(raw, emptyHtml) {
 }
 
 /* ============================================================
-   VISTA DEL PEDIDO (formato unificado con "Nuevo" y "Modificar")
+   FILTROS DE PEDIDOS (solo admin)
+============================================================ */
+let filtroActivo = null;
+
+async function aplicarFiltro(tipo) {
+  filtroActivo = tipo;
+
+  // Marcar botón activo
+  ["terminados", "sin-pagar", "sin-terminar"].forEach(t => {
+    const b = document.getElementById("filtro-" + t);
+    if (b) b.classList.toggle("activo", t === tipo);
+  });
+
+  const errorEl = document.getElementById("filtros-error");
+  const resultadosEl = document.getElementById("filtros-resultados");
+  errorEl.textContent = "";
+  resultadosEl.innerHTML = '<div class="filtros-vacio">Cargando pedidos...</div>';
+
+  try {
+    const snapshot = await db.collection("ticket").get();
+    const tickets = [];
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      d.__id = doc.id;
+      tickets.push(d);
+    });
+
+    let filtrados = [];
+    let titulo = "";
+
+    if (tipo === "terminados") {
+      titulo = "Pedidos Terminados";
+      filtrados = tickets.filter(t => t.estado === "Terminado");
+    } else if (tipo === "sin-pagar") {
+      titulo = "Pedidos sin pagar";
+      filtrados = tickets.filter(t => t["estado-pago"] === "No pagado");
+    } else if (tipo === "sin-terminar") {
+      titulo = "Pedidos sin terminar";
+      filtrados = tickets.filter(t => t.estado && t.estado !== "Terminado");
+    }
+
+    // Ordenar por fecha de registro (más recientes primero)
+    filtrados.sort((a, b) => {
+      const da = a.registro ? new Date(a.registro).getTime() : 0;
+      const db_ = b.registro ? new Date(b.registro).getTime() : 0;
+      return db_ - da;
+    });
+
+    if (filtrados.length === 0) {
+      resultadosEl.innerHTML =
+        '<div class="filtros-vacio">No se encontraron ' + escapeHtml(titulo.toLowerCase()) + '.</div>';
+      return;
+    }
+
+    let html = '<p class="filtros-count">' + escapeHtml(titulo) + ' (' + filtrados.length + ')</p>';
+
+    filtrados.forEach(t => {
+      const estado = t.estado || "-";
+      const estadoPago = t["estado-pago"] || "-";
+
+      let estadoBadgeClass = "sin-terminar";
+      if (estado === "Terminado") estadoBadgeClass = "terminado";
+      else if (estado === "En proceso") estadoBadgeClass = "en-proceso";
+
+      let pagoBadgeClass = estadoPago === "Pagado" ? "pagado" : "no-pagado";
+
+      html +=
+        '<div class="ticket-card" onclick="abrirTicketDesdeFiltro(\'' + encodeURIComponent(t.__id) + '\')">' +
+          '<h4>' +
+            '<span class="nut">' + escapeHtml(t.NUT || t.__id) + '</span>' +
+            '<span class="estado-badge ' + estadoBadgeClass + '">' + escapeHtml(estado) + '</span>' +
+          '</h4>' +
+          '<p><strong>Titular:</strong> ' + escapeHtml(t.titular || "-") + '</p>' +
+          '<p><strong>Modelo:</strong> ' + escapeHtml(t.mod || "-") + '</p>' +
+          '<p><strong>Personal:</strong> ' + escapeHtml(t.personal || "-") + '</p>' +
+          '<p><strong>Registro:</strong> ' + formatDate(t.registro) + '</p>' +
+          '<p><strong>Total:</strong> $' + formatMoney(t["precio-total"]) +
+            ' &nbsp;·&nbsp; <strong>Pago:</strong> ' +
+            '<span class="estado-badge ' + pagoBadgeClass + '">' + escapeHtml(estadoPago) + '</span>' +
+          '</p>' +
+        '</div>';
+    });
+
+    resultadosEl.innerHTML = html;
+
+  } catch (e) {
+    console.error(e);
+    errorEl.textContent = "Error al cargar los pedidos: " + e.message;
+    resultadosEl.innerHTML = "";
+  }
+}
+
+async function abrirTicketDesdeFiltro(nutEncoded) {
+  const nut = decodeURIComponent(nutEncoded);
+  await loadPedidoTab(nut);
+}
+
+/* ============================================================
+   VISTA DEL PEDIDO (formato unificado)
 ============================================================ */
 async function loadPedidoTab(nut) {
   try {
@@ -571,8 +669,6 @@ function renderPedido(data) {
   else if (estado === "En proceso") estadoColor = "orange";
   else if (estado === "Solamente tomado") estadoColor = "red";
 
-  const isTerminado = estado === "Terminado";
-
   const estadoPago = data["estado-pago"] || "";
   let estadoPagoColor = "inherit";
   if (estadoPago === "Pagado") estadoPagoColor = "green";
@@ -596,23 +692,11 @@ function renderPedido(data) {
     '<em style="color: #888;">Aún no se han adjuntado fotos del pedido terminado.</em>'
   );
 
-  const nutEscaped = encodeURIComponent(data.NUT || "");
   const tiempoSeg = parseInt(data["tiempo-preparacion"]) || 0;
   const tiempoFormateado = formatTimer(tiempoSeg);
 
-  const bannerTerminadoHtml = isTerminado ? (
-    '<div class="banner-terminado">' +
-      '<h3>🎉 ¡Tu pedido está terminado! 🎉</h3>' +
-      '<p>Podés ver todos los detalles finales en la página especial del pedido terminado.</p>' +
-      '<a href="pedido-terminado.html?=' + nutEscaped + '" class="btn-terminado">' +
-        'Ver página del pedido terminado →' +
-      '</a>' +
-    '</div>'
-  ) : '';
-
   document.getElementById("pedido-content").innerHTML =
     '<h2>Tu Pedido</h2>' +
-    bannerTerminadoHtml +
     '<div class="recuadro">' +
 
       '<strong>Tiempo de preparación:</strong>' +
@@ -675,7 +759,7 @@ function renderPedido(data) {
       '<hr class="mini">' +
 
       '<strong>Fotos de referencia:</strong>' +
-      '<div class="readonly-field readonly-field-block">' + imagenesRefHtml + '</div>' +
+      '<div class="readonly-field readonly-field-block">' + imeganesRefHtmlSafe(imagenesRefHtml) + '</div>' +
       '<hr class="mini">' +
 
       '<strong>Fotos del pedido terminado:</strong>' +
@@ -683,6 +767,9 @@ function renderPedido(data) {
 
     '</div>';
 }
+
+/* Wrapper defensivo por si el nombre cambia en el futuro */
+function imeganesRefHtmlSafe(html) { return html; }
 
 /* ============================================================
    BIENVENIDA ANIMADA

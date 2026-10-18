@@ -12,12 +12,10 @@
 </head>
 <body>
 
-  <!-- Bienvenida animada (solo primera visita) -->
   <div id="welcome-overlay" onclick="dismissWelcome()">
     <div id="welcome-text"></div>
   </div>
 
-  <!-- ================== INICIO ================== -->
   <section id="inicio" class="tab-section active">
 
     <div class="recuadro">
@@ -55,6 +53,12 @@
       <button class="primary danger" onclick="verificarNUT('eliminar')">Verificar el NUT</button>
     </div>
 
+    <!-- Admin: filtros -->
+    <div id="filtros-acceso" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('filtros-pag')">
+      <h3>¿Quieres buscar y filtrar pedidos?</h3>
+      <p>Haz clic para acceder al buscador de pedidos por estado de pago y de preparación.</p>
+    </div>
+
     <!-- Usuario: ver estado -->
     <div class="recuadro">
       <h3>¿Hiciste un pedido y querés ver cuánto se ha avanzado?</h3>
@@ -65,7 +69,6 @@
 
   </section>
 
-  <!-- ================== NUEVO PEDIDO (admin) ================== -->
   <section id="nuevo-pedido-pag" class="tab-section admin-only" style="display:none;">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Nuevo Pedido</h2>
@@ -120,12 +123,10 @@
     </div>
   </section>
 
-  <!-- ================== MODIFICAR PEDIDO (admin) ================== -->
   <section id="mod-pedido-pag" class="tab-section admin-only" style="display:none;">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Modificar Pedido</h2>
 
-    <!-- Contador de tiempo -->
     <div class="recuadro timer-rec">
       <h3>Tiempo de preparación</h3>
       <div class="timer-display" id="timer-display">00:00:00</div>
@@ -187,16 +188,31 @@
     </div>
   </section>
 
-  <!-- ================== PEDIDO (vista pública) ================== -->
+  <!-- ================== FILTROS (admin) ================== -->
+  <section id="filtros-pag" class="tab-section admin-only" style="display:none;">
+    <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
+    <h2>Buscar Pedidos</h2>
+
+    <div class="recuadro">
+      <strong>Seleccioná un filtro:</strong>
+      <div class="filtros-botones">
+        <button class="primary" id="filtro-terminados" onclick="aplicarFiltro('terminados')">✅ Pedidos Terminados</button>
+        <button class="primary" id="filtro-sin-pagar" onclick="aplicarFiltro('sin-pagar')">💸 Pedidos sin pagar</button>
+        <button class="primary" id="filtro-sin-terminar" onclick="aplicarFiltro('sin-terminar')">⏳ Pedidos sin terminar</button>
+      </div>
+      <div class="error-msg" id="filtros-error"></div>
+    </div>
+
+    <div id="filtros-resultados"></div>
+  </section>
+
   <section id="pedido" class="tab-section">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <div id="pedido-content"></div>
   </section>
 
-  <!-- Botón flotante -->
   <button id="floating-btn" onclick="toggleFloatingMenu()">🔐</button>
 
-  <!-- Menú login -->
   <div id="login-menu" class="floating-menu">
     <h4>Iniciar sesión</h4>
     <strong>Introducí la clave de acceso:</strong>
@@ -204,7 +220,6 @@
     <div class="error-msg" id="login-error"></div>
   </div>
 
-  <!-- Menú logout -->
   <div id="logout-menu" class="floating-menu">
     <h4>Cerrar sesión</h4>
     <strong>¿Seguro que querés cerrar sesión?</strong>
