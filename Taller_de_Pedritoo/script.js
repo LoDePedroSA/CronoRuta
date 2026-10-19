@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    CONFIGURACIÓN FIREBASE
 ============================================================ */
 const firebaseConfig = {
@@ -45,6 +45,10 @@ function switchTab(tabId) {
   const sec = document.getElementById(tabId);
   if (sec) sec.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
+
+  if (tabId === "nuevo-pedido-pag") {
+    prepararNuevoPedido();
+  }
 }
 
 /* ============================================================
@@ -197,6 +201,31 @@ function setSelectValue(selectId, value) {
 }
 
 /* ============================================================
+   HELPER: lectura retrocompatible cliente/teléfono o titular
+============================================================ */
+function getCliente(data) {
+  if (data.cliente) return data.cliente;
+  // Compatibilidad con pedidos viejos: si tenía "titular" con el teléfono,
+  // intentamos sacar el número para no mostrarlo como cliente.
+  if (data.titular) {
+    const t = String(data.titular).trim();
+    // Si es sólo dígitos, símbolos y +/-, asumimos que es el teléfono
+    if (/^[+\d\s\-()]+$/.test(t)) return "";
+    return t;
+  }
+  return "";
+}
+
+function getTelefono(data) {
+  if (data.telefono) return data.telefono;
+  if (data.titular) {
+    const t = String(data.titular).trim();
+    if (/^[+\d\s\-()]+$/.test(t)) return t;
+  }
+  return "";
+}
+
+/* ============================================================
    COPIAR AL PORTAPAPELES
 ============================================================ */
 async function copyToClipboard(text) {
@@ -240,10 +269,12 @@ function calcNPTotal() {
   document.getElementById("np-precio-total").value = (p - d).toFixed(2);
 }
 
+let reservedNUT = null;
+
 async function generateUniqueNUT() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
     let nut = "";
     for (let i = 0; i < 6; i++) {
       nut += chars[Math.floor(Math.random() * chars.length)];
@@ -254,12 +285,42 @@ async function generateUniqueNUT() {
   throw new Error("No se pudo generar un NUT único.");
 }
 
-async function saveNuevoPedido() {
+async function prepararNuevoPedido() {
+  const previewEl = document.getElementById("np-nut-preview");
+  if (!previewEl) return;
+
+  // Si ya hay uno reservado en esta sesión, no generamos otro
+  if (reservedNUT) {
+    previewEl.textContent = reservedNUT;
+    return;
+  }
+
+  previewEl.textContent = "Generando...";
+
   try {
     const nut = await generateUniqueNUT();
+    // Reservamos el documento para evitar colisiones entre admins
+    await db.collection("ticket").doc(nut).set({
+      NUT: nut,
+      reservado: true,
+      reservadoEn: new Date().toISOString()
+    });
+    reservedNUT = nut;
+    previewEl.textContent = nut;
+  } catch (e) {
+    console.error(e);
+    previewEl.textContent = "ERROR";
+    alert("No se pudo reservar un NUT: " + e.message);
+  }
+}
+
+async function saveNuevoPedido() {
+  try {
+    const nut = reservedNUT || await generateUniqueNUT();
     const precio = parseFloat(document.getElementById("np-precio").value) || 0;
     const descuento = parseFloat(document.getElementById("np-descuento").value) || 0;
-    const titular = document.getElementById("np-titular").value.trim();
+    const cliente = document.getElementById("np-cliente").value.trim();
+    const telefono = document.getElementById("np-telefono").value.trim();
     const cosas = Array.from(document.querySelectorAll("#np-cosas .np-cosa"))
       .map(el => el.value.trim())
       .filter(s => s)
@@ -267,8 +328,9 @@ async function saveNuevoPedido() {
 
     const data = {
       NUT: nut,
+      cliente: cliente,
+      telefono: telefono,
       personal: document.getElementById("np-personal").value,
-      titular: titular,
       "cosas-pedido": cosas,
       estado: document.getElementById("np-estado").value,
       precio: precio,
@@ -284,10 +346,12 @@ async function saveNuevoPedido() {
       "imagenes-terminado": document.getElementById("np-imagenes-terminado").value
     };
 
+    // set() sobrescribe la reserva
     await db.collection("ticket").doc(nut).set(data);
 
+    // Mensaje: sólo el cliente (sin teléfono)
     const mensaje =
-      "Hola " + (titular || "[titular]") + ", tu pedido ha sido *cargado* en la *web de nuestro taller*, " +
+      "Hola " + (cliente || "[cliente]") + ", tu pedido ha sido *cargado* en la *web de nuestro taller*, " +
       "si quieres *acceder* a ella para ver el *estado de tu pedido*, haz click en el siguiente *link*, " +
       "*_muchas gracias_*.\n\n" +
       "*Link:* https://lodepedrosa.github.io/CronoRuta/Taller_de_Pedritoo/?=" + nut + "\n\n" +
@@ -312,7 +376,9 @@ async function saveNuevoPedido() {
       );
     }
 
-    ["np-personal", "np-titular", "np-estado", "np-precio", "np-descuento",
+    // Reset
+    reservedNUT = null;
+    ["np-cliente", "np-telefono", "np-personal", "np-estado", "np-precio", "np-descuento",
       "np-precio-total", "np-estado-pago", "np-mod", "np-notas",
       "np-imagenes-referencia", "np-imagenes-terminado"].forEach(id => {
       const el = document.getElementById(id);
@@ -320,6 +386,9 @@ async function saveNuevoPedido() {
     });
     document.getElementById("np-cosas").innerHTML = "";
     addCosaInput("np-cosas", "np-cosa");
+
+    // Preparar siguiente NUT
+    prepararNuevoPedido();
 
   } catch (e) {
     console.error(e);
@@ -436,8 +505,9 @@ function loadModPedido(nut, data) {
   updateTimerDisplay();
 
   document.getElementById("mp-nut").value = nut;
+  document.getElementById("mp-cliente").value = getCliente(data);
+  document.getElementById("mp-telefono").value = getTelefono(data);
   document.getElementById("mp-personal").value = data.personal || "";
-  document.getElementById("mp-titular").value = data.titular || "";
   setSelectValue("mp-estado", data.estado || "");
   document.getElementById("mp-precio").value = data.precio != null ? data.precio : "";
   document.getElementById("mp-descuento").value = data["descuento-total"] != null ? data["descuento-total"] : "";
@@ -472,8 +542,9 @@ async function updatePedido() {
       .join("</>");
 
     await db.collection("ticket").doc(nut).update({
+      cliente: document.getElementById("mp-cliente").value.trim(),
+      telefono: document.getElementById("mp-telefono").value.trim(),
       personal: document.getElementById("mp-personal").value,
-      titular: document.getElementById("mp-titular").value,
       "cosas-pedido": cosas,
       estado: document.getElementById("mp-estado").value,
       precio: precio,
@@ -540,15 +611,30 @@ function parseImageUrls(raw, emptyHtml) {
 }
 
 /* ============================================================
-   FILTROS DE PEDIDOS (solo admin)
+   FILTROS Y BUSCADOR (solo admin)
 ============================================================ */
 let filtroActivo = null;
+let cachedTickets = null;
+
+async function cargarTickets() {
+  if (cachedTickets) return cachedTickets;
+  const snapshot = await db.collection("ticket").get();
+  const tickets = [];
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    d.__id = doc.id;
+    // Ignorar documentos "reservados" que todavía no son pedidos reales
+    if (d.reservado && !d.registro) return;
+    tickets.push(d);
+  });
+  cachedTickets = tickets;
+  return tickets;
+}
 
 async function aplicarFiltro(tipo) {
   filtroActivo = tipo;
 
-  // Marcar botón activo
-  ["terminados", "sin-pagar", "sin-terminar"].forEach(t => {
+  ["todos", "terminados", "sin-pagar", "sin-terminar"].forEach(t => {
     const b = document.getElementById("filtro-" + t);
     if (b) b.classList.toggle("activo", t === tipo);
   });
@@ -559,18 +645,15 @@ async function aplicarFiltro(tipo) {
   resultadosEl.innerHTML = '<div class="filtros-vacio">Cargando pedidos...</div>';
 
   try {
-    const snapshot = await db.collection("ticket").get();
-    const tickets = [];
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      d.__id = doc.id;
-      tickets.push(d);
-    });
+    const tickets = await cargarTickets();
 
     let filtrados = [];
     let titulo = "";
 
-    if (tipo === "terminados") {
+    if (tipo === "todos") {
+      titulo = "Todos los pedidos";
+      filtrados = tickets.slice();
+    } else if (tipo === "terminados") {
       titulo = "Pedidos Terminados";
       filtrados = tickets.filter(t => t.estado === "Terminado");
     } else if (tipo === "sin-pagar") {
@@ -581,55 +664,126 @@ async function aplicarFiltro(tipo) {
       filtrados = tickets.filter(t => t.estado && t.estado !== "Terminado");
     }
 
-    // Ordenar por fecha de registro (más recientes primero)
     filtrados.sort((a, b) => {
       const da = a.registro ? new Date(a.registro).getTime() : 0;
       const db_ = b.registro ? new Date(b.registro).getTime() : 0;
       return db_ - da;
     });
 
-    if (filtrados.length === 0) {
-      resultadosEl.innerHTML =
-        '<div class="filtros-vacio">No se encontraron ' + escapeHtml(titulo.toLowerCase()) + '.</div>';
-      return;
-    }
-
-    let html = '<p class="filtros-count">' + escapeHtml(titulo) + ' (' + filtrados.length + ')</p>';
-
-    filtrados.forEach(t => {
-      const estado = t.estado || "-";
-      const estadoPago = t["estado-pago"] || "-";
-
-      let estadoBadgeClass = "sin-terminar";
-      if (estado === "Terminado") estadoBadgeClass = "terminado";
-      else if (estado === "En proceso") estadoBadgeClass = "en-proceso";
-
-      let pagoBadgeClass = estadoPago === "Pagado" ? "pagado" : "no-pagado";
-
-      html +=
-        '<div class="ticket-card" onclick="abrirTicketDesdeFiltro(\'' + encodeURIComponent(t.__id) + '\')">' +
-          '<h4>' +
-            '<span class="nut">' + escapeHtml(t.NUT || t.__id) + '</span>' +
-            '<span class="estado-badge ' + estadoBadgeClass + '">' + escapeHtml(estado) + '</span>' +
-          '</h4>' +
-          '<p><strong>Titular:</strong> ' + escapeHtml(t.titular || "-") + '</p>' +
-          '<p><strong>Modelo:</strong> ' + escapeHtml(t.mod || "-") + '</p>' +
-          '<p><strong>Personal:</strong> ' + escapeHtml(t.personal || "-") + '</p>' +
-          '<p><strong>Registro:</strong> ' + formatDate(t.registro) + '</p>' +
-          '<p><strong>Total:</strong> $' + formatMoney(t["precio-total"]) +
-            ' &nbsp;·&nbsp; <strong>Pago:</strong> ' +
-            '<span class="estado-badge ' + pagoBadgeClass + '">' + escapeHtml(estadoPago) + '</span>' +
-          '</p>' +
-        '</div>';
-    });
-
-    resultadosEl.innerHTML = html;
-
+    renderListadoTickets(filtrados, titulo);
   } catch (e) {
     console.error(e);
     errorEl.textContent = "Error al cargar los pedidos: " + e.message;
     resultadosEl.innerHTML = "";
   }
+}
+
+function renderListadoTickets(filtrados, titulo) {
+  const resultadosEl = document.getElementById("filtros-resultados");
+
+  if (filtrados.length === 0) {
+    resultadosEl.innerHTML =
+      '<div class="filtros-vacio">No se encontraron ' + escapeHtml(titulo.toLowerCase()) + '.</div>';
+    return;
+  }
+
+  let html = '<p class="filtros-count">' + escapeHtml(titulo) + ' (' + filtrados.length + ')</p>';
+
+  filtrados.forEach(t => {
+    const estado = t.estado || "-";
+    const estadoPago = t["estado-pago"] || "-";
+
+    let estadoBadgeClass = "sin-terminar";
+    if (estado === "Terminado") estadoBadgeClass = "terminado";
+    else if (estado === "En proceso") estadoBadgeClass = "en-proceso";
+
+    let pagoBadgeClass = estadoPago === "Pagado" ? "pagado" : "no-pagado";
+
+    const cliente = getCliente(t) || "-";
+    const telefono = getTelefono(t) || "-";
+
+    html +=
+      '<div class="ticket-card" onclick="abrirTicketDesdeFiltro(\'' + encodeURIComponent(t.__id) + '\')">' +
+        '<h4>' +
+          '<span class="nut">' + escapeHtml(t.NUT || t.__id) + '</span>' +
+          '<span class="estado-badge ' + estadoBadgeClass + '">' + escapeHtml(estado) + '</span>' +
+        '</h4>' +
+        '<p><strong>Cliente:</strong> ' + escapeHtml(cliente) + '</p>' +
+        '<p><strong>Teléfono:</strong> ' + escapeHtml(telefono) + '</p>' +
+        '<p><strong>Modelo:</strong> ' + escapeHtml(t.mod || "-") + '</p>' +
+        '<p><strong>Personal:</strong> ' + escapeHtml(t.personal || "-") + '</p>' +
+        '<p><strong>Registro:</strong> ' + formatDate(t.registro) + '</p>' +
+        '<p><strong>Total:</strong> $' + formatMoney(t["precio-total"]) +
+          ' &nbsp;·&nbsp; <strong>Pago:</strong> ' +
+          '<span class="estado-badge ' + pagoBadgeClass + '">' + escapeHtml(estadoPago) + '</span>' +
+        '</p>' +
+      '</div>';
+  });
+
+  resultadosEl.innerHTML = html;
+}
+
+async function ejecutarBusqueda() {
+  const errorEl = document.getElementById("filtros-error");
+  const resultadosEl = document.getElementById("filtros-resultados");
+  errorEl.textContent = "";
+
+  const termino = document.getElementById("buscador-input").value.trim().toLowerCase();
+  const tipo = document.getElementById("buscador-tipo").value;
+
+  if (!termino) {
+    errorEl.textContent = "Escribí algo para buscar.";
+    return;
+  }
+
+  // Limpiar filtros rápidos visualmente
+  ["todos", "terminados", "sin-pagar", "sin-terminar"].forEach(t => {
+    const b = document.getElementById("filtro-" + t);
+    if (b) b.classList.remove("activo");
+  });
+  filtroActivo = "busqueda";
+
+  resultadosEl.innerHTML = '<div class="filtros-vacio">Buscando...</div>';
+
+  try {
+    const tickets = await cargarTickets();
+
+    const filtrados = tickets.filter(t => {
+      let campo = "";
+      if (tipo === "telefono") campo = getTelefono(t);
+      else if (tipo === "cliente") campo = getCliente(t);
+      else if (tipo === "mod") campo = t.mod || "";
+      return String(campo).toLowerCase().includes(termino);
+    });
+
+    filtrados.sort((a, b) => {
+      const da = a.registro ? new Date(a.registro).getTime() : 0;
+      const db_ = b.registro ? new Date(b.registro).getTime() : 0;
+      return db_ - da;
+    });
+
+    const tipoLabel = tipo === "telefono" ? "Número de Teléfono"
+      : tipo === "cliente" ? "Nombre de la persona"
+      : "Modelo";
+
+    renderListadoTickets(filtrados, 'Resultados para "' + termino + '" en ' + tipoLabel);
+  } catch (e) {
+    console.error(e);
+    errorEl.textContent = "Error al buscar: " + e.message;
+    resultadosEl.innerHTML = "";
+  }
+}
+
+function limpiarBusqueda() {
+  document.getElementById("buscador-input").value = "";
+  document.getElementById("buscador-tipo").value = "telefono";
+  document.getElementById("filtros-error").textContent = "";
+  document.getElementById("filtros-resultados").innerHTML = "";
+  filtroActivo = null;
+  ["todos", "terminados", "sin-pagar", "sin-terminar"].forEach(t => {
+    const b = document.getElementById("filtro-" + t);
+    if (b) b.classList.remove("activo");
+  });
 }
 
 async function abrirTicketDesdeFiltro(nutEncoded) {
@@ -638,7 +792,7 @@ async function abrirTicketDesdeFiltro(nutEncoded) {
 }
 
 /* ============================================================
-   VISTA DEL PEDIDO (formato unificado)
+   VISTA DEL PEDIDO
 ============================================================ */
 async function loadPedidoTab(nut) {
   try {
@@ -695,6 +849,9 @@ function renderPedido(data) {
   const tiempoSeg = parseInt(data["tiempo-preparacion"]) || 0;
   const tiempoFormateado = formatTimer(tiempoSeg);
 
+  const cliente = getCliente(data);
+  const telefono = getTelefono(data);
+
   document.getElementById("pedido-content").innerHTML =
     '<h2>Tu Pedido</h2>' +
     '<div class="recuadro">' +
@@ -704,12 +861,16 @@ function renderPedido(data) {
       '<p class="field-hint"><strong>¿Qué significan esos números de arriba? </strong>Los números de arriba son el tiempo que va tardando el personal en hacer el pedido; no cuánto tiempo desde que lo pediste, sino el tiempo que le estuvo dedicando al pedido.</p>' +
       '<hr class="mini">' +
 
-      '<strong>Personal que está atendiendo tu pedido:</strong>' +
-      '<div class="readonly-field">' + escapeHtml(data.personal || "-") + '</div>' +
+      '<strong>Cliente:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(cliente || "-") + '</div>' +
       '<hr class="mini">' +
 
-      '<strong>Titular del Pedido (Número de teléfono):</strong>' +
-      '<div class="readonly-field">' + escapeHtml(data.titular || "-") + '</div>' +
+      '<strong>Número de Teléfono:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(telefono || "-") + '</div>' +
+      '<hr class="mini">' +
+
+      '<strong>Personal que está atendiendo tu pedido:</strong>' +
+      '<div class="readonly-field">' + escapeHtml(data.personal || "-") + '</div>' +
       '<hr class="mini">' +
 
       '<strong>Detalles del pedido:</strong>' +
@@ -759,7 +920,7 @@ function renderPedido(data) {
       '<hr class="mini">' +
 
       '<strong>Fotos de referencia:</strong>' +
-      '<div class="readonly-field readonly-field-block">' + imeganesRefHtmlSafe(imagenesRefHtml) + '</div>' +
+      '<div class="readonly-field readonly-field-block">' + imagenesRefHtml + '</div>' +
       '<hr class="mini">' +
 
       '<strong>Fotos del pedido terminado:</strong>' +
@@ -767,9 +928,6 @@ function renderPedido(data) {
 
     '</div>';
 }
-
-/* Wrapper defensivo por si el nombre cambia en el futuro */
-function imeganesRefHtmlSafe(html) { return html; }
 
 /* ============================================================
    BIENVENIDA ANIMADA

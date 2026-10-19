@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -18,6 +18,10 @@
 
   <section id="inicio" class="tab-section active">
 
+    <!-- ============================================================ -->
+    <!-- BOTONES PARA USUARIOS NORMALES (siempre visibles)           -->
+    <!-- ============================================================ -->
+
     <div class="recuadro">
       <h3>¿Quieres acceder al catálogo de armados que tiene nuestro taller?</h3>
       <p>Actualmente nuestro catálogo <strong style="color: red;">no está disponible</strong>, pero nosotros esperamos que para fin de año esté listo.</p>
@@ -33,33 +37,6 @@
       <p>Si nos quieres hacer un pedido por primera vez y decís la palabra clave <strong>CESKA</strong>, obtendrás 5% de descuento en el pedido. Haciendo clic en este mensaje te llevará a nuestro número de teléfono, así podemos cotizarte el pedido...</p>
     </div>
 
-    <!-- Admin: nuevo pedido -->
-    <div id="nuevo-pedido" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('nuevo-pedido-pag')">
-      <h3>¿Quieres cargar un nuevo pedido?</h3>
-      <p>Haz clic para acceder al sistema de carga de modelos.</p>
-    </div>
-
-    <!-- Admin: modificar pedido -->
-    <div id="mod-pedido" class="recuadro admin-only" style="display:none;">
-      <h3>¿Quieres modificar la información de un pedido?</h3>
-      <input type="text" id="nut-mod" placeholder="Aquí introducí el NUT" maxlength="20">
-      <button class="primary" onclick="verificarNUT('mod')">Verificar el NUT</button>
-    </div>
-
-    <!-- Admin: eliminar pedido -->
-    <div id="eliminar-pedido" class="recuadro admin-only" style="display:none;">
-      <h3>¿Quieres eliminar un pedido?</h3>
-      <input type="text" id="nut-eliminar" placeholder="Aquí introducí el NUT" maxlength="20">
-      <button class="primary danger" onclick="verificarNUT('eliminar')">Verificar el NUT</button>
-    </div>
-
-    <!-- Admin: filtros -->
-    <div id="filtros-acceso" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('filtros-pag')">
-      <h3>¿Quieres buscar y filtrar pedidos?</h3>
-      <p>Haz clic para acceder al buscador de pedidos por estado de pago y de preparación.</p>
-    </div>
-
-    <!-- Usuario: ver estado -->
     <div class="recuadro">
       <h3>¿Hiciste un pedido y querés ver cuánto se ha avanzado?</h3>
       <p>Para ver el proceso de tu pedido tienes que buscar en el chat el NUT (Número Único de Ticket), el cual debe estar en el chat con el taller; si no, pedínoslo de vuelta. Una vez que lo tengas, tendrás que poner el código en el siguiente campo y, una vez colocado, haz clic en verificar. Si el NUT es válido, serás redireccionado automáticamente a la página del ticket.</p>
@@ -67,17 +44,54 @@
       <button class="primary" onclick="verificarNUT('estado')">Verificar el NUT</button>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- BOTONES DEL MODO ADMIN (solo si sos admin)                  -->
+    <!-- ============================================================ -->
+
+    <div id="nuevo-pedido" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('nuevo-pedido-pag')">
+      <h3>¿Quieres cargar un nuevo pedido?</h3>
+      <p>Haz clic para acceder al sistema de carga de modelos.</p>
+    </div>
+
+    <div id="mod-pedido" class="recuadro admin-only" style="display:none;">
+      <h3>¿Quieres modificar la información de un pedido?</h3>
+      <input type="text" id="nut-mod" placeholder="Aquí introducí el NUT" maxlength="20">
+      <button class="primary" onclick="verificarNUT('mod')">Verificar el NUT</button>
+    </div>
+
+    <div id="eliminar-pedido" class="recuadro admin-only" style="display:none;">
+      <h3>¿Quieres eliminar un pedido?</h3>
+      <input type="text" id="nut-eliminar" placeholder="Aquí introducí el NUT" maxlength="20">
+      <button class="primary danger" onclick="verificarNUT('eliminar')">Verificar el NUT</button>
+    </div>
+
+    <div id="filtros-acceso" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('filtros-pag')">
+      <h3>¿Quieres buscar y filtrar pedidos?</h3>
+      <p>Haz clic para acceder al buscador y a los filtros de pedidos.</p>
+    </div>
+
   </section>
 
+  <!-- ================== NUEVO PEDIDO ================== -->
   <section id="nuevo-pedido-pag" class="tab-section admin-only" style="display:none;">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Nuevo Pedido</h2>
+
+    <div class="recuadro nut-preview-rec">
+      <h3>Código NUT asignado</h3>
+      <div class="nut-preview" id="np-nut-preview">Generando...</div>
+      <p class="timer-hint">Este será el código único del pedido. Se confirma al guardar.</p>
+    </div>
+
     <div class="recuadro">
+      <strong>Cliente:</strong>
+      <input type="text" id="np-cliente" placeholder="Nombre del cliente">
+      <hr class="mini">
+      <strong>Número de Teléfono:</strong>
+      <input type="text" id="np-telefono" placeholder="Ej: +54 9 221 598-9210">
+      <hr class="mini">
       <strong>Personal que está atendiendo tu pedido:</strong>
       <input type="text" id="np-personal">
-      <hr class="mini">
-      <strong>Titular del Pedido (Número de teléfono):</strong>
-      <input type="text" id="np-titular">
       <hr class="mini">
       <strong>Detalles del pedido:</strong>
       <div id="np-cosas"></div>
@@ -123,6 +137,7 @@
     </div>
   </section>
 
+  <!-- ================== MODIFICAR PEDIDO ================== -->
   <section id="mod-pedido-pag" class="tab-section admin-only" style="display:none;">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Modificar Pedido</h2>
@@ -138,11 +153,14 @@
       <strong>NUT del Pedido:</strong>
       <input type="text" id="mp-nut" readonly>
       <hr class="mini">
+      <strong>Cliente:</strong>
+      <input type="text" id="mp-cliente" placeholder="Nombre del cliente">
+      <hr class="mini">
+      <strong>Número de Teléfono:</strong>
+      <input type="text" id="mp-telefono" placeholder="Ej: +54 9 221 598-9210">
+      <hr class="mini">
       <strong>Personal que está atendiendo tu pedido:</strong>
       <input type="text" id="mp-personal">
-      <hr class="mini">
-      <strong>Titular del Pedido (Número de teléfono):</strong>
-      <input type="text" id="mp-titular">
       <hr class="mini">
       <strong>Detalles del pedido:</strong>
       <div id="mp-cosas"></div>
@@ -188,19 +206,36 @@
     </div>
   </section>
 
-  <!-- ================== FILTROS (admin) ================== -->
+  <!-- ================== FILTROS ================== -->
   <section id="filtros-pag" class="tab-section admin-only" style="display:none;">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Buscar Pedidos</h2>
 
     <div class="recuadro">
-      <strong>Seleccioná un filtro:</strong>
+      <strong>Buscador avanzado:</strong>
+      <div class="buscador-fila">
+        <input type="text" id="buscador-input" placeholder="Escribí para buscar...">
+        <select id="buscador-tipo">
+          <option value="telefono">Número de Teléfono</option>
+          <option value="cliente">Nombre de la persona</option>
+          <option value="mod">Modelo</option>
+        </select>
+      </div>
+      <div class="filtros-botones" style="margin-top:12px;">
+        <button class="primary" onclick="ejecutarBusqueda()">🔍 Buscar</button>
+        <button class="primary" onclick="limpiarBusqueda()">✖ Limpiar</button>
+      </div>
+      <div class="error-msg" id="filtros-error"></div>
+    </div>
+
+    <div class="recuadro">
+      <strong>Filtros rápidos:</strong>
       <div class="filtros-botones">
+        <button class="primary" id="filtro-todos" onclick="aplicarFiltro('todos')">📋 Todos los pedidos</button>
         <button class="primary" id="filtro-terminados" onclick="aplicarFiltro('terminados')">✅ Pedidos Terminados</button>
         <button class="primary" id="filtro-sin-pagar" onclick="aplicarFiltro('sin-pagar')">💸 Pedidos sin pagar</button>
         <button class="primary" id="filtro-sin-terminar" onclick="aplicarFiltro('sin-terminar')">⏳ Pedidos sin terminar</button>
       </div>
-      <div class="error-msg" id="filtros-error"></div>
     </div>
 
     <div id="filtros-resultados"></div>
