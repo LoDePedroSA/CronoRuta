@@ -18,10 +18,7 @@
 
   <section id="inicio" class="tab-section active">
 
-    <!-- ============================================================ -->
-    <!-- BOTONES PARA USUARIOS NORMALES (siempre visibles)           -->
-    <!-- ============================================================ -->
-
+    <!-- BOTONES USUARIO NORMAL -->
     <div class="recuadro">
       <h3>¿Quieres acceder al catálogo de armados que tiene nuestro taller?</h3>
       <p>Actualmente nuestro catálogo <strong style="color: red;">no está disponible</strong>, pero nosotros esperamos que para fin de año esté listo.</p>
@@ -44,10 +41,7 @@
       <button class="primary" onclick="verificarNUT('estado')">Verificar el NUT</button>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- BOTONES DEL MODO ADMIN (solo si sos admin)                  -->
-    <!-- ============================================================ -->
-
+    <!-- BOTONES ADMIN -->
     <div id="nuevo-pedido" class="recuadro clickable admin-only" style="display:none;" onclick="switchTab('nuevo-pedido-pag')">
       <h3>¿Quieres cargar un nuevo pedido?</h3>
       <p>Haz clic para acceder al sistema de carga de modelos.</p>
@@ -263,6 +257,9 @@
       <button class="primary" onclick="document.getElementById('logout-menu').classList.remove('open')" style="flex:1;">No</button>
     </div>
   </div>
+
+  <!-- Contenedor de notificaciones (toasts) -->
+  <div id="toast-container"></div>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>

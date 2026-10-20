@@ -763,3 +763,89 @@ ul.lista-detalles li { margin: 6px 0; }
   margin: 6px 0 16px;
   font-weight: 600;
 }
+
+/* ============================================================
+   TOASTS (notificaciones)
+============================================================ */
+#toast-container {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10000;
+  pointer-events: none;
+  max-width: calc(100vw - 40px);
+}
+
+.toast {
+  min-width: 240px;
+  max-width: 380px;
+  background: #1e1e1e;
+  color: #fff;
+  border-radius: 10px;
+  padding: 14px 18px 14px 18px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast.removing {
+  animation: toastOut 0.3s ease-in forwards;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(120%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(120%); }
+}
+
+.toast .toast-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.toast .toast-text { flex: 1; white-space: pre-line; }
+
+.toast::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.25);
+  animation: toastBar 5s linear forwards;
+  transform-origin: left center;
+}
+
+@keyframes toastBar {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+.toast.success { background: linear-gradient(135deg, #155724, #28a745); }
+.toast.success::after { background: rgba(255, 255, 255, 0.5); }
+
+.toast.error { background: linear-gradient(135deg, #721c24, #dc3545); }
+.toast.error::after { background: rgba(255, 255, 255, 0.5); }
+
+.toast.info { background: linear-gradient(135deg, #0c5460, #17a2b8); }
+.toast.info::after { background: rgba(255, 255, 255, 0.5); }
+
+.toast.warning { background: linear-gradient(135deg, #856404, #ffc107); color: #1a1a1a; }
+.toast.warning::after { background: rgba(0, 0, 0, 0.25); }

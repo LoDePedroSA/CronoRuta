@@ -14,6 +14,44 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 /* ============================================================
+   TOASTS (notificaciones)
+============================================================ */
+function showToast(message, type = "info", duration = 5000) {
+  const container = document.getElementById("toast-container");
+  if (!container) {
+    console.log("[Toast]", type, message);
+    return;
+  }
+
+  const icons = {
+    success: "✅",
+    error: "❌",
+    info: "ℹ️",
+    warning: "⚠️"
+  };
+
+  const toast = document.createElement("div");
+  toast.className = "toast " + type;
+
+  const iconEl = document.createElement("span");
+  iconEl.className = "toast-icon";
+  iconEl.textContent = icons[type] || icons.info;
+
+  const textEl = document.createElement("span");
+  textEl.className = "toast-text";
+  textEl.textContent = message;
+
+  toast.appendChild(iconEl);
+  toast.appendChild(textEl);
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("removing");
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+/* ============================================================
    SISTEMA DE ROLES
 ============================================================ */
 function isAdmin() {
@@ -38,18 +76,87 @@ function updateUIBasedOnRole() {
 }
 
 /* ============================================================
-   NAVEGACIÓN DE PESTAÑAS
+   NAVEGACIÓN CON PILA + MEMORIA DE SCROLL
 ============================================================ */
-function switchTab(tabId) {
+const navStack = []; // [{tab, scrollY}]
+let currentTab = null;
+let isNavigating = false;
+
+const scrollMemory = {}; // tabId -> scrollY
+
+function switchTab(tabId, options = {}) {
+  if (isNavigating) return;
+  if (tabId === currentTab && !options.force) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  isNavigating = true;
+
+  // Guardar scroll de la pestaña actual
+  if (currentTab) {
+    scrollMemory[currentTab] = window.scrollY;
+  }
+
+  // Actualizar pila
+  if (options.push !== false && currentTab && currentTab !== tabId) {
+    navStack.push({ tab: currentTab, scrollY: scrollMemory[currentTab] || 0 });
+  }
+
+  // Cambiar de pestaña
   document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
   const sec = document.getElementById(tabId);
   if (sec) sec.classList.add("active");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  currentTab = tabId;
+
+  // Restaurar scroll
+  const targetY = (options.restoreScroll !== false && scrollMemory[tabId] != null)
+    ? scrollMemory[tabId]
+    : 0;
+
+  // Pequeño delay para que el navegador aplique el display
+  setTimeout(() => {
+    window.scrollTo({ top: targetY, behavior: options.smoothScroll ? "smooth" : "auto" });
+    isNavigating = false;
+  }, 30);
 
   if (tabId === "nuevo-pedido-pag") {
     prepararNuevoPedido();
   }
 }
+
+function goBack() {
+  if (navStack.length === 0) return false;
+  const prev = navStack.pop();
+  // Forzamos restauración de scroll y NO empujamos
+  switchTab(prev.tab, { push: false, restoreScroll: true, force: true });
+  // Restaurar el scroll exacto guardado
+  setTimeout(() => {
+    window.scrollTo({ top: prev.scrollY, behavior: "auto" });
+  }, 40);
+  return true;
+}
+
+// Escape → volver atrás
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const loginMenu = document.getElementById("login-menu");
+    const logoutMenu = document.getElementById("logout-menu");
+
+    // Si hay un menú flotante abierto, cerrarlo primero
+    if (loginMenu.classList.contains("open")) {
+      loginMenu.classList.remove("open");
+      return;
+    }
+    if (logoutMenu.classList.contains("open")) {
+      logoutMenu.classList.remove("open");
+      return;
+    }
+
+    goBack();
+  }
+});
 
 /* ============================================================
    BOTÓN Y MENÚS FLOTANTES
@@ -83,7 +190,7 @@ async function verifyLogin(clave) {
       localStorage.setItem("admin", "true");
       document.getElementById("login-input").value = "";
       updateUIBasedOnRole();
-      alert("Sesión iniciada como administrador.");
+      showToast("Sesión iniciada como administrador.", "success");
     } else {
       document.getElementById("login-error").textContent = "Clave incorrecta";
       document.getElementById("login-input").value = "";
@@ -99,6 +206,7 @@ function logout() {
   localStorage.removeItem("admin");
   updateUIBasedOnRole();
   document.getElementById("logout-menu").classList.remove("open");
+  showToast("Sesión cerrada.", "info");
 }
 
 /* ============================================================
@@ -126,7 +234,7 @@ async function verificarNUT(origen) {
   const nut = document.getElementById(inputId).value.trim();
 
   if (!nut) {
-    alert("Por favor, introducí un NUT.");
+    showToast("Por favor, introducí un NUT.", "warning");
     return;
   }
 
@@ -134,7 +242,7 @@ async function verificarNUT(origen) {
     const doc = await db.collection("ticket").doc(nut).get();
 
     if (!doc.exists) {
-      alert("NUT no encontrado.");
+      showToast("NUT no encontrado.", "error");
       return;
     }
 
@@ -148,13 +256,13 @@ async function verificarNUT(origen) {
     } else if (origen === "eliminar") {
       if (confirm("¿Seguro que querés eliminar el pedido " + nut + "?")) {
         await db.collection("ticket").doc(nut).delete();
-        alert("Pedido eliminado correctamente.");
+        showToast("Pedido " + nut + " eliminado correctamente.", "success");
         document.getElementById("nut-eliminar").value = "";
       }
     }
   } catch (e) {
     console.error(e);
-    alert("Error al verificar el NUT.");
+    showToast("Error al verificar el NUT.", "error");
   }
 }
 
@@ -205,11 +313,8 @@ function setSelectValue(selectId, value) {
 ============================================================ */
 function getCliente(data) {
   if (data.cliente) return data.cliente;
-  // Compatibilidad con pedidos viejos: si tenía "titular" con el teléfono,
-  // intentamos sacar el número para no mostrarlo como cliente.
   if (data.titular) {
     const t = String(data.titular).trim();
-    // Si es sólo dígitos, símbolos y +/-, asumimos que es el teléfono
     if (/^[+\d\s\-()]+$/.test(t)) return "";
     return t;
   }
@@ -289,7 +394,6 @@ async function prepararNuevoPedido() {
   const previewEl = document.getElementById("np-nut-preview");
   if (!previewEl) return;
 
-  // Si ya hay uno reservado en esta sesión, no generamos otro
   if (reservedNUT) {
     previewEl.textContent = reservedNUT;
     return;
@@ -299,7 +403,6 @@ async function prepararNuevoPedido() {
 
   try {
     const nut = await generateUniqueNUT();
-    // Reservamos el documento para evitar colisiones entre admins
     await db.collection("ticket").doc(nut).set({
       NUT: nut,
       reservado: true,
@@ -310,7 +413,7 @@ async function prepararNuevoPedido() {
   } catch (e) {
     console.error(e);
     previewEl.textContent = "ERROR";
-    alert("No se pudo reservar un NUT: " + e.message);
+    showToast("No se pudo reservar un NUT: " + e.message, "error");
   }
 }
 
@@ -346,10 +449,8 @@ async function saveNuevoPedido() {
       "imagenes-terminado": document.getElementById("np-imagenes-terminado").value
     };
 
-    // set() sobrescribe la reserva
     await db.collection("ticket").doc(nut).set(data);
 
-    // Mensaje: sólo el cliente (sin teléfono)
     const mensaje =
       "Hola " + (cliente || "[cliente]") + ", tu pedido ha sido *cargado* en la *web de nuestro taller*, " +
       "si quieres *acceder* a ella para ver el *estado de tu pedido*, haz click en el siguiente *link*, " +
@@ -360,23 +461,19 @@ async function saveNuevoPedido() {
     const copiado = await copyToClipboard(mensaje);
 
     if (copiado) {
-      alert(
-        "Pedido creado correctamente.\n\n" +
-        "NUT: " + nut + "\n\n" +
-        "✅ Mensaje copiado al portapapeles.\nYa podés pegarlo en WhatsApp."
+      showToast(
+        "Pedido creado correctamente.\nNUT: " + nut + "\n\n✅ Mensaje copiado al portapapeles.",
+        "success"
       );
     } else {
       console.log("=== MENSAJE PARA EL CLIENTE (copiar manualmente) ===");
       console.log(mensaje);
-      alert(
-        "Pedido creado correctamente.\n\n" +
-        "NUT: " + nut + "\n\n" +
-        "⚠️ No se pudo copiar automáticamente al portapapeles.\n" +
-        "El mensaje está en la consola (F12) para copiarlo manualmente."
+      showToast(
+        "Pedido creado correctamente.\nNUT: " + nut + "\n\n⚠️ No se pudo copiar el mensaje automáticamente. Está en la consola (F12).",
+        "warning"
       );
     }
 
-    // Reset
     reservedNUT = null;
     ["np-cliente", "np-telefono", "np-personal", "np-estado", "np-precio", "np-descuento",
       "np-precio-total", "np-estado-pago", "np-mod", "np-notas",
@@ -387,12 +484,11 @@ async function saveNuevoPedido() {
     document.getElementById("np-cosas").innerHTML = "";
     addCosaInput("np-cosas", "np-cosa");
 
-    // Preparar siguiente NUT
     prepararNuevoPedido();
 
   } catch (e) {
     console.error(e);
-    alert("Error al guardar el pedido: " + e.message);
+    showToast("Error al guardar el pedido: " + e.message, "error");
   }
 }
 
@@ -530,7 +626,7 @@ async function updatePedido() {
   try {
     const nut = document.getElementById("mp-nut").value;
     if (!nut) {
-      alert("No hay ningún pedido cargado.");
+      showToast("No hay ningún pedido cargado.", "warning");
       return;
     }
 
@@ -540,6 +636,14 @@ async function updatePedido() {
       .map(el => el.value.trim())
       .filter(s => s)
       .join("</>");
+
+    // Detener el contador si estaba activo y guardarlo
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      setTimerButtonState(false);
+      updateTimerDisplay();
+    }
 
     await db.collection("ticket").doc(nut).update({
       cliente: document.getElementById("mp-cliente").value.trim(),
@@ -558,10 +662,16 @@ async function updatePedido() {
       "tiempo-preparacion": Math.floor(timerSeconds)
     });
 
-    alert("Pedido actualizado correctamente.");
+    showToast("Pedido " + nut + " actualizado correctamente.", "success");
+
+    // Volver a inicio directamente
+    navStack.length = 0;
+    switchTab("inicio", { push: false, restoreScroll: false, force: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
   } catch (e) {
     console.error(e);
-    alert("Error al actualizar el pedido: " + e.message);
+    showToast("Error al actualizar el pedido: " + e.message, "error");
   }
 }
 
@@ -623,7 +733,6 @@ async function cargarTickets() {
   snapshot.forEach(doc => {
     const d = doc.data();
     d.__id = doc.id;
-    // Ignorar documentos "reservados" que todavía no son pedidos reales
     if (d.reservado && !d.registro) return;
     tickets.push(d);
   });
@@ -736,7 +845,6 @@ async function ejecutarBusqueda() {
     return;
   }
 
-  // Limpiar filtros rápidos visualmente
   ["todos", "terminados", "sin-pagar", "sin-terminar"].forEach(t => {
     const b = document.getElementById("filtro-" + t);
     if (b) b.classList.remove("activo");
@@ -788,7 +896,25 @@ function limpiarBusqueda() {
 
 async function abrirTicketDesdeFiltro(nutEncoded) {
   const nut = decodeURIComponent(nutEncoded);
-  await loadPedidoTab(nut);
+
+  // Admin: ir directo a la pestaña de modificar con todo cargado
+  if (isAdmin()) {
+    try {
+      const doc = await db.collection("ticket").doc(nut).get();
+      if (!doc.exists) {
+        showToast("NUT no encontrado.", "error");
+        return;
+      }
+      loadModPedido(nut, doc.data());
+      switchTab("mod-pedido-pag");
+      showToast("Pedido " + nut + " cargado para editar.", "info");
+    } catch (e) {
+      console.error(e);
+      showToast("Error al abrir el pedido: " + e.message, "error");
+    }
+  } else {
+    await loadPedidoTab(nut);
+  }
 }
 
 /* ============================================================
@@ -988,6 +1114,8 @@ function init() {
 
   addCosaInput("np-cosas", "np-cosa");
   addCosaInput("mp-cosas", "mp-cosa");
+
+  currentTab = "inicio";
 
   const search = window.location.search;
   let nutParam = "";
