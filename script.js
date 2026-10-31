@@ -66,8 +66,11 @@
         },
         unionCarcovena: {
             nombre: 'Union Carcoveña S.A.',
-            lineas: ['83'],
-            ramales: ['Constitucion - Jose Leon Suarez - Boulogne']
+            lineas: ['83', '267'],
+            ramales: [
+                'Constitucion - Jose Leon Suarez - Boulogne',
+                'Tigre - Gral. Rodriguez'
+            ]
         }
     };
 
