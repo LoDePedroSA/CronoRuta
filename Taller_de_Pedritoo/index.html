@@ -78,12 +78,16 @@
     </div>
 
     <div class="recuadro">
-      <strong>Cliente:</strong>
-      <input type="text" id="np-cliente" placeholder="Nombre del cliente">
+      <strong>Cliente que hizo el pedido:</strong>
+      <div class="buscador-fila">
+        <select id="np-cliente-select">
+          <option value="">-- Seleccionar cliente --</option>
+        </select>
+        <button class="primary" type="button" onclick="abrirModalCliente('nuevo')">+ Nuevo cliente</button>
+      </div>
+      <p class="field-hint">¿No aparece el cliente? Creá un perfil nuevo con el botón de arriba.</p>
       <hr class="mini">
-      <strong>Número de Teléfono:</strong>
-      <input type="text" id="np-telefono" placeholder="Ej: +54 9 221 598-9210">
-      <hr class="mini">
+
       <strong>Personal que está atendiendo tu pedido:</strong>
       <input type="text" id="np-personal">
       <hr class="mini">
@@ -136,22 +140,17 @@
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <h2>Modificar Pedido</h2>
 
-    <div class="recuadro timer-rec">
-      <h3>Tiempo de preparación</h3>
-      <div class="timer-display" id="timer-display">00:00:00</div>
-      <button class="primary" id="timer-toggle-btn" onclick="toggleTimer()">▶ Activar contador</button>
-      <p class="timer-hint">El tiempo se guarda automáticamente cada 15 segundos mientras el contador está activo.</p>
-    </div>
-
     <div class="recuadro">
       <strong>NUT del Pedido:</strong>
       <input type="text" id="mp-nut" readonly>
       <hr class="mini">
-      <strong>Cliente:</strong>
-      <input type="text" id="mp-cliente" placeholder="Nombre del cliente">
-      <hr class="mini">
-      <strong>Número de Teléfono:</strong>
-      <input type="text" id="mp-telefono" placeholder="Ej: +54 9 221 598-9210">
+      <strong>Cliente que hizo el pedido:</strong>
+      <div class="buscador-fila">
+        <select id="mp-cliente-select">
+          <option value="">-- Seleccionar cliente --</option>
+        </select>
+        <button class="primary" type="button" onclick="abrirModalCliente('mod')">+ Nuevo cliente</button>
+      </div>
       <hr class="mini">
       <strong>Personal que está atendiendo tu pedido:</strong>
       <input type="text" id="mp-personal">
@@ -229,12 +228,40 @@
         <button class="primary" id="filtro-terminados" onclick="aplicarFiltro('terminados')">✅ Pedidos Terminados</button>
         <button class="primary" id="filtro-sin-pagar" onclick="aplicarFiltro('sin-pagar')">💸 Pedidos sin pagar</button>
         <button class="primary" id="filtro-sin-terminar" onclick="aplicarFiltro('sin-terminar')">⏳ Pedidos sin terminar</button>
+        <button class="primary" id="filtro-clientes" onclick="switchTab('clientes-pag')">👥 Ver Clientes</button>
       </div>
     </div>
 
     <div id="filtros-resultados"></div>
   </section>
 
+  <!-- ================== CLIENTES ================== -->
+  <section id="clientes-pag" class="tab-section admin-only" style="display:none;">
+    <button class="back-btn" onclick="switchTab('filtros-pag')">← Volver a filtros</button>
+    <h2>Clientes</h2>
+
+    <div class="recuadro">
+      <strong>Buscar cliente por nombre:</strong>
+      <div class="buscador-fila">
+        <input type="text" id="buscador-cliente-input" placeholder="Escribí el nombre...">
+      </div>
+      <div class="filtros-botones" style="margin-top:12px;">
+        <button class="primary" onclick="buscarClientes()">🔍 Buscar</button>
+        <button class="primary" onclick="listarTodosClientes()">📋 Listar todos</button>
+      </div>
+      <div class="error-msg" id="clientes-error"></div>
+    </div>
+
+    <div id="clientes-resultados"></div>
+  </section>
+
+  <!-- ================== PERFIL DEL CLIENTE ================== -->
+  <section id="cliente-pag" class="tab-section admin-only" style="display:none;">
+    <button class="back-btn" onclick="switchTab('clientes-pag')">← Volver a clientes</button>
+    <div id="cliente-content"></div>
+  </section>
+
+  <!-- ================== VISTA PÚBLICA DEL PEDIDO ================== -->
   <section id="pedido" class="tab-section">
     <button class="back-btn" onclick="switchTab('inicio')">← Volver al inicio</button>
     <div id="pedido-content"></div>
@@ -255,6 +282,21 @@
     <div class="btn-row">
       <button class="primary danger" onclick="logout()" style="flex:1;">Sí</button>
       <button class="primary" onclick="document.getElementById('logout-menu').classList.remove('open')" style="flex:1;">No</button>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: CREAR CLIENTE ================== -->
+  <div id="modal-cliente" class="floating-menu" style="display:none; top:50%; bottom:auto; right:50%; transform:translate(50%,-50%); width:400px; max-width:calc(100vw - 40px); z-index:10001;">
+    <h4>Nuevo Cliente</h4>
+    <strong>Nombre:</strong>
+    <input type="text" id="nc-nombre" placeholder="Nombre completo">
+    <hr class="mini">
+    <strong>Número de teléfono:</strong>
+    <input type="text" id="nc-telefono" placeholder="Ej: +54 9 221 598-9210">
+    <div class="error-msg" id="nc-error"></div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="primary" onclick="guardarNuevoCliente()" style="flex:1;">Guardar</button>
+      <button class="primary danger" onclick="cerrarModalCliente()" style="flex:1;">Cancelar</button>
     </div>
   </div>
 

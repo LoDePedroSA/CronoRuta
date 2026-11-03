@@ -115,7 +115,6 @@ function switchTab(tabId, options = {}) {
     ? scrollMemory[tabId]
     : 0;
 
-  // Pequeño delay para que el navegador aplique el display
   setTimeout(() => {
     window.scrollTo({ top: targetY, behavior: options.smoothScroll ? "smooth" : "auto" });
     isNavigating = false;
@@ -129,9 +128,7 @@ function switchTab(tabId, options = {}) {
 function goBack() {
   if (navStack.length === 0) return false;
   const prev = navStack.pop();
-  // Forzamos restauración de scroll y NO empujamos
   switchTab(prev.tab, { push: false, restoreScroll: true, force: true });
-  // Restaurar el scroll exacto guardado
   setTimeout(() => {
     window.scrollTo({ top: prev.scrollY, behavior: "auto" });
   }, 40);
@@ -143,8 +140,12 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     const loginMenu = document.getElementById("login-menu");
     const logoutMenu = document.getElementById("logout-menu");
+    const modalCliente = document.getElementById("modal-cliente");
 
-    // Si hay un menú flotante abierto, cerrarlo primero
+    if (modalCliente && modalCliente.style.display === "block") {
+      cerrarModalCliente();
+      return;
+    }
     if (loginMenu.classList.contains("open")) {
       loginMenu.classList.remove("open");
       return;
@@ -250,7 +251,7 @@ async function verificarNUT(origen) {
       window.location.href =
         "https://lodepedrosa.github.io/CronoRuta/Taller_de_Pedritoo/index.html?=" + encodeURIComponent(nut);
     } else if (origen === "mod") {
-      loadModPedido(nut, doc.data());
+      await loadModPedido(nut, doc.data());
       switchTab("mod-pedido-pag");
       document.getElementById("nut-mod").value = "";
     } else if (origen === "eliminar") {
@@ -267,12 +268,20 @@ async function verificarNUT(origen) {
 }
 
 /* ============================================================
-   HELPERS DE CAMPOS DINÁMICOS ("cosas-pedido")
+   HELPERS DE CAMPOS DINÁMICOS ("cosas-pedido") CON CHECKBOX
 ============================================================ */
-function addCosaInput(containerId, className, value) {
+function addCosaInput(containerId, className, value, completada) {
   const container = document.getElementById(containerId);
+  if (!container) return;
+
   const row = document.createElement("div");
   row.className = "cosa-row";
+
+  const check = document.createElement("input");
+  check.type = "checkbox";
+  check.className = className + "-check";
+  check.checked = !!completada;
+  check.title = "Marcar como completado";
 
   const input = document.createElement("input");
   input.type = "text";
@@ -286,9 +295,27 @@ function addCosaInput(containerId, className, value) {
   btn.title = "Eliminar detalle";
   btn.onclick = () => row.remove();
 
+  row.appendChild(check);
   row.appendChild(input);
   row.appendChild(btn);
   container.appendChild(row);
+}
+
+function recolectarCosas(containerId, className) {
+  const rows = document.querySelectorAll("#" + containerId + " .cosa-row");
+  const cosas = [];
+  const completadas = [];
+  rows.forEach(row => {
+    const input = row.querySelector("." + className);
+    const check = row.querySelector("." + className + "-check");
+    if (!input) return;
+    const val = input.value.trim();
+    if (val) {
+      cosas.push(val);
+      completadas.push(!!(check && check.checked));
+    }
+  });
+  return { cosas: cosas.join("</>"), completadas: completadas };
 }
 
 /* ============================================================
@@ -363,6 +390,88 @@ async function copyToClipboard(text) {
 }
 
 /* ============================================================
+   SISTEMA DE CLIENTES
+============================================================ */
+let cachedClientes = null;
+
+async function cargarClientes(force = false) {
+  if (cachedClientes && !force) return cachedClientes;
+  const snap = await db.collection("clientes").orderBy("nombre").get();
+  cachedClientes = [];
+  snap.forEach(doc => cachedClientes.push({ id: doc.id, ...doc.data() }));
+  return cachedClientes;
+}
+
+function invalidarCacheClientes() {
+  cachedClientes = null;
+}
+
+async function llenarSelectClientes(selectId, clienteIdSeleccionado) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  try {
+    const clientes = await cargarClientes();
+    sel.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
+    clientes.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.nombre + (c.telefono ? " — " + c.telefono : "");
+      sel.appendChild(opt);
+    });
+    if (clienteIdSeleccionado) sel.value = clienteIdSeleccionado;
+  } catch (e) {
+    console.error("Error cargando clientes:", e);
+    showToast("No se pudieron cargar los clientes: " + e.message, "error");
+  }
+}
+
+/* --- Modal de crear cliente --- */
+let contextoModalCliente = null; // 'nuevo' | 'mod'
+
+function abrirModalCliente(contexto) {
+  contextoModalCliente = contexto;
+  document.getElementById("nc-nombre").value = "";
+  document.getElementById("nc-telefono").value = "";
+  document.getElementById("nc-error").textContent = "";
+  document.getElementById("modal-cliente").style.display = "block";
+  setTimeout(() => document.getElementById("nc-nombre").focus(), 50);
+}
+
+function cerrarModalCliente() {
+  document.getElementById("modal-cliente").style.display = "none";
+  contextoModalCliente = null;
+}
+
+async function guardarNuevoCliente() {
+  const nombre = document.getElementById("nc-nombre").value.trim();
+  const telefono = document.getElementById("nc-telefono").value.trim();
+  const errEl = document.getElementById("nc-error");
+
+  if (!nombre) {
+    errEl.textContent = "El nombre es obligatorio.";
+    return;
+  }
+
+  try {
+    const ref = await db.collection("clientes").add({
+      nombre: nombre,
+      telefono: telefono,
+      creadoEn: new Date().toISOString()
+    });
+    invalidarCacheClientes();
+
+    const selectId = contextoModalCliente === "nuevo" ? "np-cliente-select" : "mp-cliente-select";
+    await llenarSelectClientes(selectId, ref.id);
+
+    showToast("Cliente '" + nombre + "' creado.", "success");
+    cerrarModalCliente();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = "Error al guardar el cliente: " + e.message;
+  }
+}
+
+/* ============================================================
    NUEVO PEDIDO
 ============================================================ */
 document.getElementById("np-precio").addEventListener("input", calcNPTotal);
@@ -394,6 +503,9 @@ async function prepararNuevoPedido() {
   const previewEl = document.getElementById("np-nut-preview");
   if (!previewEl) return;
 
+  // Cargar select de clientes (sin preselección)
+  llenarSelectClientes("np-cliente-select");
+
   if (reservedNUT) {
     previewEl.textContent = reservedNUT;
     return;
@@ -419,22 +531,32 @@ async function prepararNuevoPedido() {
 
 async function saveNuevoPedido() {
   try {
+    const clienteId = document.getElementById("np-cliente-select").value;
+    if (!clienteId) {
+      showToast("Seleccioná un cliente antes de guardar.", "warning");
+      return;
+    }
+
+    const clientes = await cargarClientes();
+    const clienteObj = clientes.find(c => c.id === clienteId);
+    if (!clienteObj) {
+      showToast("El cliente seleccionado no existe.", "error");
+      return;
+    }
+
     const nut = reservedNUT || await generateUniqueNUT();
     const precio = parseFloat(document.getElementById("np-precio").value) || 0;
     const descuento = parseFloat(document.getElementById("np-descuento").value) || 0;
-    const cliente = document.getElementById("np-cliente").value.trim();
-    const telefono = document.getElementById("np-telefono").value.trim();
-    const cosas = Array.from(document.querySelectorAll("#np-cosas .np-cosa"))
-      .map(el => el.value.trim())
-      .filter(s => s)
-      .join("</>");
+    const { cosas, completadas } = recolectarCosas("np-cosas", "np-cosa");
 
     const data = {
       NUT: nut,
-      cliente: cliente,
-      telefono: telefono,
+      clienteId: clienteId,
+      cliente: clienteObj.nombre,
+      telefono: clienteObj.telefono || "",
       personal: document.getElementById("np-personal").value,
       "cosas-pedido": cosas,
+      "cosas-completadas": completadas,
       estado: document.getElementById("np-estado").value,
       precio: precio,
       "descuento-total": descuento,
@@ -442,7 +564,6 @@ async function saveNuevoPedido() {
       "estado-pago": document.getElementById("np-estado-pago").value,
       mod: document.getElementById("np-mod").value,
       notas: document.getElementById("np-notas").value,
-      "tiempo-preparacion": 0,
       registro: new Date().toISOString(),
       imagenes: "",
       "imagenes-referencia": document.getElementById("np-imagenes-referencia").value,
@@ -452,7 +573,7 @@ async function saveNuevoPedido() {
     await db.collection("ticket").doc(nut).set(data);
 
     const mensaje =
-      "Hola " + (cliente || "[cliente]") + ", tu pedido ha sido *cargado* en la *web de nuestro taller*, " +
+      "Hola " + (clienteObj.nombre || "[cliente]") + ", tu pedido ha sido *cargado* en la *web de nuestro taller*, " +
       "si quieres *acceder* a ella para ver el *estado de tu pedido*, haz click en el siguiente *link*, " +
       "*_muchas gracias_*.\n\n" +
       "*Link:* https://lodepedrosa.github.io/CronoRuta/Taller_de_Pedritoo/?=" + nut + "\n\n" +
@@ -475,15 +596,18 @@ async function saveNuevoPedido() {
     }
 
     reservedNUT = null;
-    ["np-cliente", "np-telefono", "np-personal", "np-estado", "np-precio", "np-descuento",
-      "np-precio-total", "np-estado-pago", "np-mod", "np-notas",
+    ["np-personal", "np-estado", "np-precio", "np-descuento", "np-precio-total",
+      "np-estado-pago", "np-mod", "np-notas",
       "np-imagenes-referencia", "np-imagenes-terminado"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
     document.getElementById("np-cosas").innerHTML = "";
     addCosaInput("np-cosas", "np-cosa");
+    const selCliente = document.getElementById("np-cliente-select");
+    if (selCliente) selCliente.value = "";
 
+    invalidarCacheClientes();
     prepararNuevoPedido();
 
   } catch (e) {
@@ -491,88 +615,6 @@ async function saveNuevoPedido() {
     showToast("Error al guardar el pedido: " + e.message, "error");
   }
 }
-
-/* ============================================================
-   CONTADOR DE TIEMPO
-============================================================ */
-let timerInterval = null;
-let timerSeconds = 0;
-let currentNutForTimer = null;
-
-function formatTimer(seconds) {
-  const s = Number(seconds);
-  if (isNaN(s) || s < 0) return "00:00:00";
-  const total = Math.floor(s);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const sec = total % 60;
-  const pad = n => String(n).padStart(2, "0");
-  return pad(h) + ":" + pad(m) + ":" + pad(sec);
-}
-
-function updateTimerDisplay() {
-  const el = document.getElementById("timer-display");
-  if (!el) return;
-  el.textContent = formatTimer(timerSeconds);
-  if (timerInterval) el.classList.add("running");
-  else el.classList.remove("running");
-}
-
-async function saveTimerValue(nut, seconds) {
-  if (!nut) return;
-  try {
-    await db.collection("ticket").doc(nut).update({
-      "tiempo-preparacion": Math.floor(seconds)
-    });
-  } catch (e) {
-    console.error("Error guardando el contador:", e);
-  }
-}
-
-async function saveTimer() {
-  if (!currentNutForTimer) return;
-  return saveTimerValue(currentNutForTimer, timerSeconds);
-}
-
-function setTimerButtonState(isRunning) {
-  const btn = document.getElementById("timer-toggle-btn");
-  if (!btn) return;
-  if (isRunning) {
-    btn.textContent = "⏸ Desactivar contador";
-    btn.classList.remove("primary");
-    btn.classList.add("danger");
-  } else {
-    btn.textContent = "▶ Activar contador";
-    btn.classList.remove("danger");
-    btn.classList.add("primary");
-  }
-}
-
-async function toggleTimer() {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    setTimerButtonState(false);
-    updateTimerDisplay();
-    await saveTimer();
-  } else {
-    timerInterval = setInterval(() => {
-      timerSeconds++;
-      updateTimerDisplay();
-      if (timerSeconds % 15 === 0) saveTimer();
-    }, 1000);
-    setTimerButtonState(true);
-    updateTimerDisplay();
-  }
-}
-
-window.addEventListener("beforeunload", (e) => {
-  if (timerInterval) {
-    e.preventDefault();
-    e.returnValue = "El contador de tiempo está activo. ¿Seguro que querés salir?";
-    return e.returnValue;
-  }
-});
 
 /* ============================================================
    MODIFICAR PEDIDO
@@ -586,23 +628,8 @@ function calcMPTotal() {
   document.getElementById("mp-precio-total").value = (p - d).toFixed(2);
 }
 
-function loadModPedido(nut, data) {
-  if (timerInterval && currentNutForTimer) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    const oldNut = currentNutForTimer;
-    const oldSeconds = timerSeconds;
-    saveTimerValue(oldNut, oldSeconds);
-  }
-
-  currentNutForTimer = nut;
-  timerSeconds = parseInt(data["tiempo-preparacion"]) || 0;
-  setTimerButtonState(false);
-  updateTimerDisplay();
-
+async function loadModPedido(nut, data) {
   document.getElementById("mp-nut").value = nut;
-  document.getElementById("mp-cliente").value = getCliente(data);
-  document.getElementById("mp-telefono").value = getTelefono(data);
   document.getElementById("mp-personal").value = data.personal || "";
   setSelectValue("mp-estado", data.estado || "");
   document.getElementById("mp-precio").value = data.precio != null ? data.precio : "";
@@ -614,12 +641,16 @@ function loadModPedido(nut, data) {
   document.getElementById("mp-imagenes-referencia").value = data["imagenes-referencia"] || "";
   document.getElementById("mp-imagenes-terminado").value = data["imagenes-terminado"] || "";
 
+  // Cargar select de clientes (con el cliente actual seleccionado)
+  await llenarSelectClientes("mp-cliente-select", data.clienteId || "");
+
+  // Detalles con checkboxes
   const container = document.getElementById("mp-cosas");
   container.innerHTML = "";
-
   const cosas = (data["cosas-pedido"] || "").split("</>").map(s => s.trim()).filter(s => s);
+  const completadas = Array.isArray(data["cosas-completadas"]) ? data["cosas-completadas"] : [];
   if (cosas.length === 0) cosas.push("");
-  cosas.forEach(c => addCosaInput("mp-cosas", "mp-cosa", c));
+  cosas.forEach((c, i) => addCosaInput("mp-cosas", "mp-cosa", c, completadas[i] || false));
 }
 
 async function updatePedido() {
@@ -630,26 +661,30 @@ async function updatePedido() {
       return;
     }
 
-    const precio = parseFloat(document.getElementById("mp-precio").value) || 0;
-    const descuento = parseFloat(document.getElementById("mp-descuento").value) || 0;
-    const cosas = Array.from(document.querySelectorAll("#mp-cosas .mp-cosa"))
-      .map(el => el.value.trim())
-      .filter(s => s)
-      .join("</>");
-
-    // Detener el contador si estaba activo y guardarlo
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      setTimerButtonState(false);
-      updateTimerDisplay();
+    const clienteId = document.getElementById("mp-cliente-select").value;
+    if (!clienteId) {
+      showToast("Seleccioná un cliente.", "warning");
+      return;
     }
 
+    const clientes = await cargarClientes();
+    const clienteObj = clientes.find(c => c.id === clienteId);
+    if (!clienteObj) {
+      showToast("El cliente seleccionado no existe.", "error");
+      return;
+    }
+
+    const precio = parseFloat(document.getElementById("mp-precio").value) || 0;
+    const descuento = parseFloat(document.getElementById("mp-descuento").value) || 0;
+    const { cosas, completadas } = recolectarCosas("mp-cosas", "mp-cosa");
+
     await db.collection("ticket").doc(nut).update({
-      cliente: document.getElementById("mp-cliente").value.trim(),
-      telefono: document.getElementById("mp-telefono").value.trim(),
+      clienteId: clienteId,
+      cliente: clienteObj.nombre,
+      telefono: clienteObj.telefono || "",
       personal: document.getElementById("mp-personal").value,
       "cosas-pedido": cosas,
+      "cosas-completadas": completadas,
       estado: document.getElementById("mp-estado").value,
       precio: precio,
       "descuento-total": descuento,
@@ -658,13 +693,14 @@ async function updatePedido() {
       mod: document.getElementById("mp-mod").value,
       notas: document.getElementById("mp-notas").value,
       "imagenes-referencia": document.getElementById("mp-imagenes-referencia").value,
-      "imagenes-terminado": document.getElementById("mp-imagenes-terminado").value,
-      "tiempo-preparacion": Math.floor(timerSeconds)
+      "imagenes-terminado": document.getElementById("mp-imagenes-terminado").value
     });
 
     showToast("Pedido " + nut + " actualizado correctamente.", "success");
 
-    // Volver a inicio directamente
+    // Invalidar cache de tickets por si cambió el cliente
+    cachedTickets = null;
+
     navStack.length = 0;
     switchTab("inicio", { push: false, restoreScroll: false, force: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -726,8 +762,8 @@ function parseImageUrls(raw, emptyHtml) {
 let filtroActivo = null;
 let cachedTickets = null;
 
-async function cargarTickets() {
-  if (cachedTickets) return cachedTickets;
+async function cargarTickets(force = false) {
+  if (cachedTickets && !force) return cachedTickets;
   const snapshot = await db.collection("ticket").get();
   const tickets = [];
   snapshot.forEach(doc => {
@@ -897,7 +933,6 @@ function limpiarBusqueda() {
 async function abrirTicketDesdeFiltro(nutEncoded) {
   const nut = decodeURIComponent(nutEncoded);
 
-  // Admin: ir directo a la pestaña de modificar con todo cargado
   if (isAdmin()) {
     try {
       const doc = await db.collection("ticket").doc(nut).get();
@@ -905,7 +940,7 @@ async function abrirTicketDesdeFiltro(nutEncoded) {
         showToast("NUT no encontrado.", "error");
         return;
       }
-      loadModPedido(nut, doc.data());
+      await loadModPedido(nut, doc.data());
       switchTab("mod-pedido-pag");
       showToast("Pedido " + nut + " cargado para editar.", "info");
     } catch (e) {
@@ -918,7 +953,127 @@ async function abrirTicketDesdeFiltro(nutEncoded) {
 }
 
 /* ============================================================
-   VISTA DEL PEDIDO
+   LISTADO / PERFIL DE CLIENTES
+============================================================ */
+async function listarTodosClientes() {
+  document.getElementById("clientes-error").textContent = "";
+  document.getElementById("clientes-resultados").innerHTML =
+    '<div class="filtros-vacio">Cargando...</div>';
+  try {
+    const clientes = await cargarClientes(true);
+    renderListadoClientes(clientes, "Todos los clientes");
+  } catch (e) {
+    console.error(e);
+    document.getElementById("clientes-error").textContent = "Error: " + e.message;
+    document.getElementById("clientes-resultados").innerHTML = "";
+  }
+}
+
+async function buscarClientes() {
+  const term = document.getElementById("buscador-cliente-input").value.trim().toLowerCase();
+  document.getElementById("clientes-error").textContent = "";
+  if (!term) {
+    document.getElementById("clientes-error").textContent = "Escribí un nombre para buscar.";
+    return;
+  }
+  document.getElementById("clientes-resultados").innerHTML =
+    '<div class="filtros-vacio">Buscando...</div>';
+  try {
+    const clientes = await cargarClientes(true);
+    const filtrados = clientes.filter(c => (c.nombre || "").toLowerCase().includes(term));
+    renderListadoClientes(filtrados, 'Resultados para "' + term + '"');
+  } catch (e) {
+    console.error(e);
+    document.getElementById("clientes-error").textContent = "Error: " + e.message;
+    document.getElementById("clientes-resultados").innerHTML = "";
+  }
+}
+
+function renderListadoClientes(clientes, titulo) {
+  const el = document.getElementById("clientes-resultados");
+  if (clientes.length === 0) {
+    el.innerHTML = '<div class="filtros-vacio">No se encontraron clientes.</div>';
+    return;
+  }
+  let html = '<p class="filtros-count">' + escapeHtml(titulo) + ' (' + clientes.length + ')</p>';
+  clientes.forEach(c => {
+    html +=
+      '<div class="ticket-card" onclick="abrirPerfilCliente(\'' + encodeURIComponent(c.id) + '\')">' +
+        '<h4><span>' + escapeHtml(c.nombre || "-") + '</span></h4>' +
+        '<p><strong>Teléfono:</strong> ' + escapeHtml(c.telefono || "-") + '</p>' +
+        '<p><strong>Cliente desde:</strong> ' + formatDate(c.creadoEn) + '</p>' +
+      '</div>';
+  });
+  el.innerHTML = html;
+}
+
+async function abrirPerfilCliente(idEncoded) {
+  const id = decodeURIComponent(idEncoded);
+  try {
+    const doc = await db.collection("clientes").doc(id).get();
+    if (!doc.exists) {
+      showToast("Cliente no encontrado.", "error");
+      return;
+    }
+    const cliente = { id: doc.id, ...doc.data() };
+
+    const snap = await db.collection("ticket").where("clienteId", "==", id).get();
+    const tickets = [];
+    snap.forEach(t => {
+      const d = t.data();
+      d.__id = t.id;
+      if (d.reservado && !d.registro) return;
+      tickets.push(d);
+    });
+    tickets.sort((a, b) => new Date(b.registro || 0) - new Date(a.registro || 0));
+
+    let pedidosHtml = "";
+    if (tickets.length === 0) {
+      pedidosHtml = '<div class="filtros-vacio">Este cliente todavía no tiene pedidos.</div>';
+    } else {
+      tickets.forEach(t => {
+        const estado = t.estado || "-";
+        let badgeClass = "sin-terminar";
+        if (estado === "Terminado") badgeClass = "terminado";
+        else if (estado === "En proceso") badgeClass = "en-proceso";
+
+        pedidosHtml +=
+          '<div class="ticket-card" onclick="abrirTicketDesdeFiltro(\'' + encodeURIComponent(t.__id) + '\')">' +
+            '<h4>' +
+              '<span class="nut">' + escapeHtml(t.NUT || t.__id) + '</span>' +
+              '<span class="estado-badge ' + badgeClass + '">' + escapeHtml(estado) + '</span>' +
+            '</h4>' +
+            '<p><strong>Modelo:</strong> ' + escapeHtml(t.mod || "-") + '</p>' +
+            '<p><strong>Registro:</strong> ' + formatDate(t.registro) + '</p>' +
+            '<p><strong>Total:</strong> $' + formatMoney(t["precio-total"]) + '</p>' +
+          '</div>';
+      });
+    }
+
+    document.getElementById("cliente-content").innerHTML =
+      '<h2>Perfil de ' + escapeHtml(cliente.nombre || "-") + '</h2>' +
+      '<div class="recuadro">' +
+        '<strong>Nombre:</strong>' +
+        '<div class="readonly-field">' + escapeHtml(cliente.nombre || "-") + '</div>' +
+        '<hr class="mini">' +
+        '<strong>Teléfono:</strong>' +
+        '<div class="readonly-field">' + escapeHtml(cliente.telefono || "-") + '</div>' +
+        '<hr class="mini">' +
+        '<strong>Cliente desde:</strong>' +
+        '<div class="readonly-field">' + formatDate(cliente.creadoEn) + '</div>' +
+      '</div>' +
+      '<h2>Pedidos realizados (' + tickets.length + ')</h2>' +
+      '<div>' + pedidosHtml + '</div>';
+
+    switchTab("cliente-pag");
+  } catch (e) {
+    console.error(e);
+    showToast("Error al cargar el perfil: " + e.message, "error");
+  }
+}
+
+/* ============================================================
+   VISTA PÚBLICA DEL PEDIDO
 ============================================================ */
 async function loadPedidoTab(nut) {
   try {
@@ -955,8 +1110,14 @@ function renderPedido(data) {
   else if (estadoPago === "No pagado") estadoPagoColor = "red";
 
   const cosas = (data["cosas-pedido"] || "").split("</>").map(s => s.trim()).filter(s => s);
+  const completadas = Array.isArray(data["cosas-completadas"]) ? data["cosas-completadas"] : [];
   const cosasHtml = cosas.length
-    ? cosas.map((c, i) => "<li>" + (i + 1) + "- " + escapeHtml(c) + "</li>").join("")
+    ? cosas.map((c, i) => {
+        const hecho = completadas[i];
+        return "<li>" + (hecho ? "✅ " : "☐ ") + (i + 1) + "- " +
+               escapeHtml(c) +
+               (hecho ? " <em>(completado)</em>" : "") + "</li>";
+      }).join("")
     : "<li>-</li>";
 
   const imagenesHtml = parseImageUrls(
@@ -972,20 +1133,12 @@ function renderPedido(data) {
     '<em style="color: #888;">Aún no se han adjuntado fotos del pedido terminado.</em>'
   );
 
-  const tiempoSeg = parseInt(data["tiempo-preparacion"]) || 0;
-  const tiempoFormateado = formatTimer(tiempoSeg);
-
   const cliente = getCliente(data);
   const telefono = getTelefono(data);
 
   document.getElementById("pedido-content").innerHTML =
     '<h2>Tu Pedido</h2>' +
     '<div class="recuadro">' +
-
-      '<strong>Tiempo de preparación:</strong>' +
-      '<div class="readonly-field readonly-field-timer">' + tiempoFormateado + '</div>' +
-      '<p class="field-hint"><strong>¿Qué significan esos números de arriba? </strong>Los números de arriba son el tiempo que va tardando el personal en hacer el pedido; no cuánto tiempo desde que lo pediste, sino el tiempo que le estuvo dedicando al pedido.</p>' +
-      '<hr class="mini">' +
 
       '<strong>Cliente:</strong>' +
       '<div class="readonly-field">' + escapeHtml(cliente || "-") + '</div>' +
@@ -1126,7 +1279,29 @@ function init() {
     nutParam = params.get("") || "";
   }
 
-  if (nutParam) loadPedidoTab(nutParam);
+  if (nutParam) {
+    // 🔑 Si es admin y abre un link de pedido → modo edición automático
+    if (isAdmin()) {
+      db.collection("ticket").doc(nutParam).get()
+        .then(doc => {
+          if (doc.exists) {
+            return loadModPedido(nutParam, doc.data())
+              .then(() => {
+                switchTab("mod-pedido-pag");
+                showToast("Modo editor activado para el NUT " + nutParam, "info");
+              });
+          } else {
+            return loadPedidoTab(nutParam);
+          }
+        })
+        .catch(e => {
+          console.error(e);
+          loadPedidoTab(nutParam);
+        });
+    } else {
+      loadPedidoTab(nutParam);
+    }
+  }
 }
 
 init();
